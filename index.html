@@ -49,6 +49,7 @@
         height: 30px;
         background: #444;
         border: 2px solid #aaa;
+        cursor: pointer;
     }
 
     canvas {
@@ -91,7 +92,6 @@ const TILE_SIZE = 64;
 const ROOM_SIZE = 10;
 const ROOM_PIXELS = ROOM_SIZE * TILE_SIZE;
 
-// 10 x 10 room world
 const WORLD_WIDTH = 10;
 const WORLD_HEIGHT = 10;
 
@@ -141,11 +141,22 @@ class GameScene extends Phaser.Scene {
         this.inventory = [];
         this.inventorySlots = document.querySelectorAll(".slot");
 
-        // This remembers which room items have already been collected
+        // Remember original collected items
         this.collectedRooms = new Set();
 
-        // Collectible item group
+        // Remember dropped items in each room
+        this.droppedItemsByRoom = {};
+
+        // Groups
         this.itemGroup = this.physics.add.group();
+        this.droppedGroup = this.physics.add.group();
+
+        // Allow inventory slots to be clicked
+        this.inventorySlots.forEach((slot, index) => {
+            slot.addEventListener("click", () => {
+                this.dropInventoryItem(index);
+            });
+        });
 
         // Room label
         this.roomText = this.add.text(
@@ -189,11 +200,20 @@ class GameScene extends Phaser.Scene {
             this.wallGroup
         );
 
-        // Player collects items
+        // Player collects normal items
         this.physics.add.overlap(
             this.player,
             this.itemGroup,
             this.collectItem,
+            null,
+            this
+        );
+
+        // Player collects dropped items
+        this.physics.add.overlap(
+            this.player,
+            this.droppedGroup,
+            this.collectDroppedItem,
             null,
             this
         );
@@ -403,38 +423,94 @@ class GameScene extends Phaser.Scene {
 
 
     // =====================================================
+    // INVENTORY
+    // =====================================================
+
+    updateInventoryDisplay() {
+
+        this.inventorySlots.forEach(slot => {
+            slot.style.backgroundColor = "#444";
+        });
+
+        this.inventory.forEach((colour, index) => {
+            this.inventorySlots[index].style.backgroundColor =
+                "#" + colour.toString(16).padStart(6, "0");
+        });
+    }
+
+
+    dropInventoryItem(slotIndex) {
+
+        // Only drop if there is an item in that slot
+        if (slotIndex >= this.inventory.length) {
+            return;
+        }
+
+        const colour = this.inventory[slotIndex];
+
+        const roomKey = `${this.roomX},${this.roomY}`;
+
+        if (!this.droppedItemsByRoom[roomKey]) {
+            this.droppedItemsByRoom[roomKey] = [];
+        }
+
+        // Work out which tile the player is standing on
+        const tileX = Math.floor(this.player.x / TILE_SIZE);
+        const tileY = Math.floor(this.player.y / TILE_SIZE);
+
+        // Drop in the centre of that tile
+        const dropX = tileX * TILE_SIZE + TILE_SIZE / 2;
+        const dropY = tileY * TILE_SIZE + TILE_SIZE / 2;
+
+        this.droppedItemsByRoom[roomKey].push({
+            x: dropX,
+            y: dropY,
+            colour: colour
+        });
+
+        // Remove item from inventory
+        this.inventory.splice(slotIndex, 1);
+
+        this.updateInventoryDisplay();
+
+        this.createDroppedItems();
+    }
+
+
+    // =====================================================
     // COLLECTIBLE ITEMS
     // =====================================================
 
     createRoomItems() {
 
-        // Remove old items when changing room
         this.itemGroup.clear(true, true);
-
-        const roomNumber = this.roomY * WORLD_WIDTH + this.roomX;
-
-        // No item in the starting room
-        if (this.roomX === 0 && this.roomY === 0) {
-            return;
-        }
-
-        // Use room number 1 to 9 for the 9 items
-        const itemIndex = roomNumber - 1;
-
-        if (itemIndex < 0 || itemIndex >= ITEM_COLOURS.length) {
-            return;
-        }
 
         const roomKey = `${this.roomX},${this.roomY}`;
 
-        // Do not recreate the item if it has already been collected
+        // Spread items around the map
+        const itemRooms = {
+            "1,0": 0, // B1 red
+            "3,2": 1, // D3 green
+            "5,1": 2, // F2 blue
+            "2,4": 3, // C5 yellow
+            "7,3": 4, // H4 pink
+            "4,6": 5, // E7 cyan
+            "8,5": 6, // I6 orange
+            "6,8": 7, // G9 white
+            "9,9": 8  // J10 purple
+        };
+
+        if (!(roomKey in itemRooms)) {
+            return;
+        }
+
         if (this.collectedRooms.has(roomKey)) {
             return;
         }
 
+        const itemIndex = itemRooms[roomKey];
         const colour = ITEM_COLOURS[itemIndex];
 
-        // Create item shape
         const item = this.add.circle(
             ROOM_PIXELS / 2,
             ROOM_PIXELS / 2 + 100,
@@ -446,28 +522,77 @@ class GameScene extends Phaser.Scene {
         item.roomKey = roomKey;
 
         this.physics.add.existing(item);
-
         this.itemGroup.add(item);
     }
 
 
     collectItem(player, item) {
 
-        // Stop if inventory is full
         if (this.inventory.length >= 9) {
             return;
         }
 
         this.inventory.push(item.itemColour);
 
-        const slot = this.inventorySlots[this.inventory.length - 1];
-
-        slot.style.backgroundColor =
-            "#" + item.itemColour.toString(16).padStart(6, "0");
+        this.updateInventoryDisplay();
 
         this.collectedRooms.add(item.roomKey);
 
         item.destroy();
+    }
+
+
+    // =====================================================
+    // DROPPED ITEMS
+    // =====================================================
+
+    createDroppedItems() {
+
+        this.droppedGroup.clear(true, true);
+
+        const roomKey = `${this.roomX},${this.roomY}`;
+
+        const droppedItems = this.droppedItemsByRoom[roomKey] || [];
+
+        droppedItems.forEach((itemData, index) => {
+
+            const item = this.add.rectangle(
+                itemData.x,
+                itemData.y,
+                28,
+                28,
+                itemData.colour
+            );
+
+            item.itemColour = itemData.colour;
+            item.roomKey = roomKey;
+            item.dropIndex = index;
+
+            this.physics.add.existing(item);
+            this.droppedGroup.add(item);
+        });
+    }
+
+
+    collectDroppedItem(player, item) {
+
+        if (this.inventory.length >= 9) {
+            return;
+        }
+
+        this.inventory.push(item.itemColour);
+
+        this.updateInventoryDisplay();
+
+        const droppedItems = this.droppedItemsByRoom[item.roomKey];
+
+        if (droppedItems) {
+            droppedItems.splice(item.dropIndex, 1);
+        }
+
+        item.destroy();
+
+        this.createDroppedItems();
     }
 
 
@@ -522,7 +647,6 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Show win and lose pads only in the final room
         const isFinalRoom =
             this.roomX === WORLD_WIDTH - 1 &&
             this.roomY === WORLD_HEIGHT - 1;
@@ -530,8 +654,8 @@ class GameScene extends Phaser.Scene {
         this.winPad.setVisible(isFinalRoom);
         this.losePad.setVisible(isFinalRoom);
 
-        // Create item for this room
         this.createRoomItems();
+        this.createDroppedItems();
 
         this.updateRoomLabel();
     }
