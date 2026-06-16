@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Phaser Room Grid - Inventory Game</title>
+<title>Phaser Room Grid - Wizard Inventory Game</title>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
 
@@ -131,6 +131,11 @@ class GameScene extends Phaser.Scene {
         this.roomY = 0;
     }
 
+    preload() {
+        // Save the wizard image as wizard.png in the same folder as this HTML file
+        this.load.image("wizard", "wizard.png");
+    }
+
     create() {
 
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -181,7 +186,7 @@ class GameScene extends Phaser.Scene {
         // Draw starting room
         this.drawRoom();
 
-        // Create player
+        // Create wizard player
         this.createPlayerCharacter(
             ROOM_PIXELS / 2,
             ROOM_PIXELS / 2
@@ -189,8 +194,9 @@ class GameScene extends Phaser.Scene {
 
         this.physics.add.existing(this.player);
 
-        this.player.body.setSize(30, 44);
-        this.player.body.setOffset(-15, -24);
+        // Wizard collision box
+        this.player.body.setSize(28, 42);
+        this.player.body.setOffset(10, 12);
 
         this.player.body.setCollideWorldBounds(false);
 
@@ -221,171 +227,32 @@ class GameScene extends Phaser.Scene {
 
 
     // =====================================================
-    // PLAYER CHARACTER
+    // WIZARD PLAYER
     // =====================================================
 
     createPlayerCharacter(x, y) {
 
-        this.player = this.add.container(x, y);
+        // Create wizard sprite from image
+        this.player = this.add.image(x, y, "wizard");
 
-        this.shadow = this.add.ellipse(
-            0,
-            25,
-            36,
-            10,
-            0x000000,
-            0.35
-        );
+        // Resize wizard if needed
+        this.player.setScale(1.5);
 
-        this.leftLeg = this.add.rectangle(
-            -7,
-            20,
-            8,
-            24,
-            0x1f3a5f
-        );
-
-        this.rightLeg = this.add.rectangle(
-            7,
-            20,
-            8,
-            24,
-            0x1f3a5f
-        );
-
-        this.bodyShape = this.add.rectangle(
-            0,
-            0,
-            26,
-            32,
-            0x1abc9c
-        );
-
-        this.leftArm = this.add.rectangle(
-            -18,
-            0,
-            7,
-            24,
-            0xffcc99
-        );
-
-        this.rightArm = this.add.rectangle(
-            18,
-            0,
-            7,
-            24,
-            0xffcc99
-        );
-
-        this.head = this.add.circle(
-            0,
-            -25,
-            14,
-            0xffcc99
-        );
-
-        this.hair = this.add.rectangle(
-            0,
-            -36,
-            22,
-            7,
-            0x3b2414
-        );
-
-        this.leftEye = this.add.circle(
-            -5,
-            -26,
-            2,
-            0x000000
-        );
-
-        this.rightEye = this.add.circle(
-            5,
-            -26,
-            2,
-            0x000000
-        );
-
-        this.hat = this.add.rectangle(
-            0,
-            -45,
-            20,
-            10,
-            0xff00ff
-        );
-
-        this.hat2 = this.add.rectangle(
-            0,
-            -40,
-            30,
-            5,
-            0xff00ff
-        );
-
-        this.player.add([
-            this.shadow,
-            this.leftLeg,
-            this.rightLeg,
-            this.leftArm,
-            this.rightArm,
-            this.bodyShape,
-            this.head,
-            this.hair,
-            this.leftEye,
-            this.rightEye,
-            this.hat,
-            this.hat2
-        ]);
-
+        // Walking animation timer
         this.walkTimer = 0;
-        this.walkFrame = 0;
     }
 
 
     animatePlayer(isMoving, delta) {
 
         if (isMoving) {
-
             this.walkTimer += delta;
 
-            if (this.walkTimer > 120) {
-                this.walkTimer = 0;
-                this.walkFrame = 1 - this.walkFrame;
-            }
-
-            if (this.walkFrame === 0) {
-                this.leftLeg.y = 18;
-                this.rightLeg.y = 23;
-
-                this.leftArm.y = 4;
-                this.rightArm.y = -4;
-            }
-            else {
-                this.leftLeg.y = 23;
-                this.rightLeg.y = 18;
-
-                this.leftArm.y = -4;
-                this.rightArm.y = 4;
-            }
-
-            this.bodyShape.y = -2;
-            this.head.y = -27;
-            this.hair.y = -38;
-            this.leftEye.y = -28;
-            this.rightEye.y = -28;
+            // Small walking wobble
+            this.player.angle = Math.sin(this.walkTimer / 100) * 2;
         }
         else {
-            this.leftLeg.y = 20;
-            this.rightLeg.y = 20;
-
-            this.leftArm.y = 0;
-            this.rightArm.y = 0;
-
-            this.bodyShape.y = 0;
-            this.head.y = -25;
-            this.hair.y = -36;
-            this.leftEye.y = -26;
-            this.rightEye.y = -26;
+            this.player.angle = 0;
         }
     }
 
@@ -469,7 +336,7 @@ class GameScene extends Phaser.Scene {
             y: dropY,
             colour: colour,
 
-            // This stops the player instantly picking it up again
+            // Stops the player instantly picking it back up
             canPickupAt: this.time.now + 800
         });
 
@@ -714,13 +581,13 @@ class GameScene extends Phaser.Scene {
 
         if (this.cursors.left.isDown) {
             this.player.body.setVelocityX(-speed);
-            this.player.scaleX = -1;
+            this.player.setFlipX(true);
             isMoving = true;
         }
 
         if (this.cursors.right.isDown) {
             this.player.body.setVelocityX(speed);
-            this.player.scaleX = 1;
+            this.player.setFlipX(false);
             isMoving = true;
         }
 
