@@ -428,10 +428,12 @@ class GameScene extends Phaser.Scene {
 
     updateInventoryDisplay() {
 
+        // Empty all slots first
         this.inventorySlots.forEach(slot => {
             slot.style.backgroundColor = "#444";
         });
 
+        // Fill slots with inventory items
         this.inventory.forEach((colour, index) => {
             this.inventorySlots[index].style.backgroundColor =
                 "#" + colour.toString(16).padStart(6, "0");
@@ -465,7 +467,10 @@ class GameScene extends Phaser.Scene {
         this.droppedItemsByRoom[roomKey].push({
             x: dropX,
             y: dropY,
-            colour: colour
+            colour: colour,
+
+            // This stops the player instantly picking it up again
+            canPickupAt: this.time.now + 800
         });
 
         // Remove item from inventory
@@ -567,6 +572,7 @@ class GameScene extends Phaser.Scene {
             item.itemColour = itemData.colour;
             item.roomKey = roomKey;
             item.dropIndex = index;
+            item.canPickupAt = itemData.canPickupAt || 0;
 
             this.physics.add.existing(item);
             this.droppedGroup.add(item);
@@ -575,6 +581,11 @@ class GameScene extends Phaser.Scene {
 
 
     collectDroppedItem(player, item) {
+
+        // Do not pick it up instantly after dropping
+        if (this.time.now < item.canPickupAt) {
+            return;
+        }
 
         if (this.inventory.length >= 9) {
             return;
