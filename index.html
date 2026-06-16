@@ -30,14 +30,22 @@
 // ROOM SETTINGS
 // =====================================================
 
-// Smaller tiles so the room fits the screen
 const TILE_SIZE = 64;
 const ROOM_SIZE = 10;
 const ROOM_PIXELS = ROOM_SIZE * TILE_SIZE;
 
-// 10x10 room world
+// 10 x 10 room world
 const WORLD_WIDTH = 10;
 const WORLD_HEIGHT = 10;
+
+// Win / lose positions
+const WIN_X = ROOM_PIXELS / 2 - 100;
+const WIN_Y = ROOM_PIXELS / 2;
+
+const LOSE_X = ROOM_PIXELS / 2 + 100;
+const LOSE_Y = ROOM_PIXELS / 2;
+
+const END_DISTANCE = 35;
 
 
 // =====================================================
@@ -49,20 +57,16 @@ class GameScene extends Phaser.Scene {
     constructor() {
         super();
 
-        // Start in room A1
         this.roomX = 0;
         this.roomY = 0;
     }
 
     create() {
 
-        // Arrow keys
         this.cursors = this.input.keyboard.createCursorKeys();
 
-        // Static wall collection
         this.wallGroup = this.physics.add.staticGroup();
 
-        // Create room label
         this.roomText = this.add.text(
             ROOM_PIXELS / 2,
             ROOM_PIXELS / 2,
@@ -75,26 +79,27 @@ class GameScene extends Phaser.Scene {
 
         this.roomText.setOrigin(0.5);
 
-        // Draw starting room
+        // Win and lose markers
+        this.winPad = this.add.circle(WIN_X, WIN_Y, 25, 0x00ff00);
+        this.losePad = this.add.circle(LOSE_X, LOSE_Y, 25, 0xff0000);
+
+        this.winPad.setVisible(false);
+        this.losePad.setVisible(false);
+
         this.drawRoom();
 
-        // Create player character
         this.createPlayerCharacter(
             ROOM_PIXELS / 2,
             ROOM_PIXELS / 2
         );
 
-        // Add physics body to the player
         this.physics.add.existing(this.player);
 
-        // Collision box
         this.player.body.setSize(30, 44);
         this.player.body.setOffset(-15, -24);
 
-        // Allows player to leave edge to enter another room
         this.player.body.setCollideWorldBounds(false);
 
-        // Player collides with walls
         this.physics.add.collider(
             this.player,
             this.wallGroup
@@ -110,7 +115,6 @@ class GameScene extends Phaser.Scene {
 
         this.player = this.add.container(x, y);
 
-        // Shadow
         this.shadow = this.add.ellipse(
             0,
             25,
@@ -120,7 +124,6 @@ class GameScene extends Phaser.Scene {
             0.35
         );
 
-        // Legs
         this.leftLeg = this.add.rectangle(
             -7,
             20,
@@ -137,7 +140,6 @@ class GameScene extends Phaser.Scene {
             0x1f3a5f
         );
 
-        // Body
         this.bodyShape = this.add.rectangle(
             0,
             0,
@@ -146,7 +148,6 @@ class GameScene extends Phaser.Scene {
             0x1abc9c
         );
 
-        // Arms
         this.leftArm = this.add.rectangle(
             -18,
             0,
@@ -163,7 +164,6 @@ class GameScene extends Phaser.Scene {
             0xffcc99
         );
 
-        // Head and face
         this.head = this.add.circle(
             0,
             -25,
@@ -193,7 +193,6 @@ class GameScene extends Phaser.Scene {
             0x000000
         );
 
-        // Hat
         this.hat = this.add.rectangle(
             0,
             -45,
@@ -210,7 +209,6 @@ class GameScene extends Phaser.Scene {
             0xff00ff
         );
 
-        // Add parts to player
         this.player.add([
             this.shadow,
             this.leftLeg,
@@ -226,7 +224,6 @@ class GameScene extends Phaser.Scene {
             this.hat2
         ]);
 
-        // Walking animation variables
         this.walkTimer = 0;
         this.walkFrame = 0;
     }
@@ -281,7 +278,7 @@ class GameScene extends Phaser.Scene {
 
 
     // =====================================================
-    // ROOM NAME
+    // ROOM LABEL
     // =====================================================
 
     updateRoomLabel() {
@@ -308,7 +305,6 @@ class GameScene extends Phaser.Scene {
         );
 
         this.physics.add.existing(wall, true);
-
         this.wallGroup.add(wall);
     }
 
@@ -319,21 +315,17 @@ class GameScene extends Phaser.Scene {
 
     drawRoom() {
 
-        // Remove previous room walls
         this.wallGroup.clear(true, true);
 
         const gap = Math.floor(ROOM_SIZE / 2);
 
-        // Check which neighbouring rooms exist
         const hasNorth = this.roomY > 0;
         const hasSouth = this.roomY < WORLD_HEIGHT - 1;
         const hasWest = this.roomX > 0;
         const hasEast = this.roomX < WORLD_WIDTH - 1;
 
-        // Top and bottom walls
         for (let x = 0; x < ROOM_SIZE; x++) {
 
-            // Top wall
             if (!(hasNorth && x === gap)) {
                 this.createWall(
                     x * TILE_SIZE + TILE_SIZE / 2,
@@ -341,7 +333,6 @@ class GameScene extends Phaser.Scene {
                 );
             }
 
-            // Bottom wall
             if (!(hasSouth && x === gap)) {
                 this.createWall(
                     x * TILE_SIZE + TILE_SIZE / 2,
@@ -350,10 +341,8 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Left and right walls
         for (let y = 1; y < ROOM_SIZE - 1; y++) {
 
-            // Left wall
             if (!(hasWest && y === gap)) {
                 this.createWall(
                     TILE_SIZE / 2,
@@ -361,7 +350,6 @@ class GameScene extends Phaser.Scene {
                 );
             }
 
-            // Right wall
             if (!(hasEast && y === gap)) {
                 this.createWall(
                     ROOM_PIXELS - TILE_SIZE / 2,
@@ -369,6 +357,14 @@ class GameScene extends Phaser.Scene {
                 );
             }
         }
+
+        // Show win and lose pads only in the final room
+        const isFinalRoom =
+            this.roomX === WORLD_WIDTH - 1 &&
+            this.roomY === WORLD_HEIGHT - 1;
+
+        this.winPad.setVisible(isFinalRoom);
+        this.losePad.setVisible(isFinalRoom);
 
         this.updateRoomLabel();
     }
@@ -385,7 +381,6 @@ class GameScene extends Phaser.Scene {
 
         this.drawRoom();
 
-        // Reposition player inside doorway
         if (dx === 1) {
             this.player.x = TILE_SIZE * 1.5;
         }
@@ -477,38 +472,34 @@ class GameScene extends Phaser.Scene {
         // END SCENE
         // -------------------------
 
-        // These are invisible points in the final room.
-        // The win point is left of centre.
-        // The lose point is right of centre.
-
-        const winX = ROOM_PIXELS / 2 - 80;
-        const winY = ROOM_PIXELS / 2;
-
-        const loseX = ROOM_PIXELS / 2 + 80;
-        const loseY = ROOM_PIXELS / 2;
-
-        const closeEnough = 25;
-
-        // Win check
         if (
             this.roomX === WORLD_WIDTH - 1 &&
             this.roomY === WORLD_HEIGHT - 1 &&
-            Math.abs(this.player.x - winX) <= closeEnough &&
-            Math.abs(this.player.y - winY) <= closeEnough
+            Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                WIN_X,
+                WIN_Y
+            ) <= END_DISTANCE
         ) {
             alert("You win! Thanks for playing");
             this.scene.stop();
+            return;
         }
 
-        // Lose check
         if (
             this.roomX === WORLD_WIDTH - 1 &&
             this.roomY === WORLD_HEIGHT - 1 &&
-            Math.abs(this.player.x - loseX) <= closeEnough &&
-            Math.abs(this.player.y - loseY) <= closeEnough
+            Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                LOSE_X,
+                LOSE_Y
+            ) <= END_DISTANCE
         ) {
             alert("You lose! Better luck next time");
             this.scene.stop();
+            return;
         }
     }
 }
@@ -536,600 +527,9 @@ const config = {
     scene: GameScene
 };
 
-
-// Start game
 new Phaser.Game(config);
 
 </script>
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Concern
-
-You have fallen several weeks behind with your NEA. Independent learning time has been given, but this has not yet led to enough progress. At the moment, lack of effort and focus is causing you to fall further behind.
-
-Improvement
-
-Use independent learning time properly each week. Set one clear NEA target before you start, complete it, and upload evidence of progress. You should also catch up on the missing work as a priority.
-
-Misconception
-
-Independent learning does not mean “optional work.” It means you are expected to manage your time, make progress without constant teacher support, and take responsibility for meeting deadlines.
-
-
-Recursion, how it can be used and compares to an iterative approach. explain simply typocal question
-
-Thought for a couple of seconds
-Recursion — simple explanation
-Recursion is when a subroutine calls itself to solve a problem.
-
-It keeps breaking the problem into smaller versions of the same problem until it reaches a stopping point.
-
-That stopping point is called the base case.
-
-Simple analogy
-Like Russian dolls:
-
-You keep opening a smaller doll inside, until you reach the smallest one.
-
-That smallest doll is the base case.
-
-Example: countdown
-Recursive approach
-def countdown(n):
-    if n == 0:
-        print("Done")
-    else:
-        print(n)
-        countdown(n - 1)
-This calls itself again and again:
-
-countdown(3)
-countdown(2)
-countdown(1)
-countdown(0)
-Done
-Iterative approach
-Iteration means using a loop, such as FOR, WHILE or REPEAT.
-
-def countdown(n):
-    while n > 0:
-        print(n)
-        n = n - 1
-    print("Done")
-This repeats using a loop instead of calling itself.
-
-Recursion vs iteration
-Recursion	Iteration
-A subroutine calls itself	A loop repeats code
-Needs a base case	Needs a loop condition
-Can be elegant for some problems	Usually simpler and more efficient
-Uses more memory because calls are stored on the stack	Usually uses less memory
-Risk of stack overflow if it never stops	Risk of infinite loop if condition is wrong
-Typical exam question
-Question:
-Explain how recursion works and compare it with an iterative approach. [4 marks]
-
-Model answer:
-Recursion is when a subroutine calls itself.¹ It must have a base case so the repeated calls eventually stop.² Recursion can make some problems easier to express, especially problems that can be split into smaller versions of the same problem.³ Iteration uses loops instead, and is often more memory efficient because it does not store lots of unfinished subroutine calls on the stack.⁴
-
-
-
-Pasted text.txt
-Document
-doe sthis work?
-
-Thought for 4s
-Yes, mostly it should run, as long as the browser can load Phaser from the internet:
-
-<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
-But there are two main logic problems in the ending section. 
-
-
-Main problem: win and lose are in the same place
-You have:
-
-const leftX = ROOM_PIXELS / 2 - 20;
-const leftY = ROOM_PIXELS / 2 - 20;
-
-const rightX = ROOM_PIXELS / 2 - 20;
-const rightY = ROOM_PIXELS / 2 - 20;
-So leftX/leftY and rightX/rightY are exactly the same.
-
-That means when the player reaches that point in the final room, both conditions are true:
-
-alert("You win! thanks for playing");
-and then potentially:
-
-alert("You lose! better luck next time");
-Fix
-Make the win and lose positions different:
-
-const winX = ROOM_PIXELS / 2 - 80;
-const winY = ROOM_PIXELS / 2;
-
-const loseX = ROOM_PIXELS / 2 + 80;
-const loseY = ROOM_PIXELS / 2;
-
-const closeEnough = 20;
-
-if (
-    this.roomX === WORLD_WIDTH - 1 &&
-    this.roomY === WORLD_HEIGHT - 1 &&
-    Math.abs(this.player.x - winX) <= closeEnough &&
-    Math.abs(this.player.y - winY) <= closeEnough
-) {
-    alert("You win! Thanks for playing");
-    this.scene.stop();
-}
-
-if (
-    this.roomX === WORLD_WIDTH - 1 &&
-    this.roomY === WORLD_HEIGHT - 1 &&
-    Math.abs(this.player.x - loseX) <= closeEnough &&
-    Math.abs(this.player.y - loseY) <= closeEnough
-) {
-    alert("You lose! Better luck next time");
-    this.scene.stop();
-}
-Also worth fixing
-Your title says 4x4 Room Grid, but your world is actually 10x10:
-
-const WORLD_WIDTH = 10;
-const WORLD_HEIGHT = 10;
-So either change the title or change it to:
-
-const WORLD_WIDTH = 4;
-const WORLD_HEIGHT = 4;
-Simple verdict
-It should run, but the ending logic needs fixing because win and lose are currently triggered in the same place.
-
-
-the height of rrom is too big so room does not fit screen
-
-Thought for a couple of seconds
-Yes — the room is 960px high because:
-
-const TILE_SIZE = 96;
-const ROOM_SIZE = 10;
-const ROOM_PIXELS = ROOM_SIZE * TILE_SIZE;
-So:
-
-10 × 96 = 960px
-That will not fit many laptop screens once the browser toolbar is included. Your canvas uses that full room size for both width and height. 
-
-
-Use this simple fix:
-
-const TILE_SIZE = 64;
-const ROOM_SIZE = 10;
-const ROOM_PIXELS = ROOM_SIZE * TILE_SIZE;
-That makes the room:
-
-10 × 64 = 640px
-Much better for the screen.
-
-Replace this section
-const TILE_SIZE = 96;
-const ROOM_SIZE = 10;
-const ROOM_PIXELS = ROOM_SIZE * TILE_SIZE;
-With this
-const TILE_SIZE = 64;
-const ROOM_SIZE = 10;
-const ROOM_PIXELS = ROOM_SIZE * TILE_SIZE;
-You may also want to reduce the room label size:
-
-fontSize: "36px",
-instead of:
-
-fontSize: "48px",
-Best classroom-friendly version
-const TILE_SIZE = 64;
-const ROOM_SIZE = 10;
-const ROOM_PIXELS = ROOM_SIZE * TILE_SIZE;
-This keeps the same 10 by 10 room, but makes each tile smaller so the whole room fits on screen.
-
-
-what about cde to fix wi ad lose
-
-Yes — replace your whole END SCENE section with this cleaner version.
-
-// -------------------------
-// END SCENE
-// -------------------------
-
-// Put the win and lose points in the final room.
-// They must be in different places.
-const winX = ROOM_PIXELS / 2 - 120;
-const winY = ROOM_PIXELS / 2;
-
-const loseX = ROOM_PIXELS / 2 + 120;
-const loseY = ROOM_PIXELS / 2;
-
-const closeEnough = 25;
-
-// Win point
-if (
-    this.roomX === WORLD_WIDTH - 1 &&
-    this.roomY === WORLD_HEIGHT - 1 &&
-    Math.abs(this.player.x - winX) <= closeEnough &&
-    Math.abs(this.player.y - winY) <= closeEnough
-) {
-    alert("You win! Thanks for playing");
-    this.scene.stop();
-}
-
-// Lose point
-if (
-    this.roomX === WORLD_WIDTH - 1 &&
-    this.roomY === WORLD_HEIGHT - 1 &&
-    Math.abs(this.player.x - loseX) <= closeEnough &&
-    Math.abs(this.player.y - loseY) <= closeEnough
-) {
-    alert("You lose! Better luck next time");
-    this.scene.stop();
-}
-At the moment your win and lose points are the same, so the game cannot properly tell the difference.
-
-You currently have this problem:
-
-const leftX = ROOM_PIXELS / 2 - 20;
-const leftY = ROOM_PIXELS / 2 - 20;
-
-const rightX = ROOM_PIXELS / 2 - 20;
-const rightY = ROOM_PIXELS / 2 - 20;
-Both are identical. The fixed version moves the win point left and the lose point right.
-
-
-so that wll fx it ?
-
-Yes — it will fix the win/lose logic problem, because the win point and lose point will no longer be in the same place.
-
-But you need to do two things:
-
-Delete your old END SCENE code
-
-Paste the new END SCENE code in the same place inside update()
-
-Also, because your room size is now smaller if you changed TILE_SIZE to 64, I’d use this slightly safer version:
-
-// -------------------------
-// END SCENE
-// -------------------------
-
-const winX = ROOM_PIXELS / 2 - 80;
-const winY = ROOM_PIXELS / 2;
-
-const loseX = ROOM_PIXELS / 2 + 80;
-const loseY = ROOM_PIXELS / 2;
-
-const closeEnough = 25;
-
-if (
-    this.roomX === WORLD_WIDTH - 1 &&
-    this.roomY === WORLD_HEIGHT - 1 &&
-    Math.abs(this.player.x - winX) <= closeEnough &&
-    Math.abs(this.player.y - winY) <= closeEnough
-) {
-    alert("You win! Thanks for playing");
-    this.scene.stop();
-}
-
-if (
-    this.roomX === WORLD_WIDTH - 1 &&
-    this.roomY === WORLD_HEIGHT - 1 &&
-    Math.abs(this.player.x - loseX) <= closeEnough &&
-    Math.abs(this.player.y - loseY) <= closeEnough
-) {
-    alert("You lose! Better luck next time");
-    this.scene.stop();
-}
-That should work better than 120 if the room is now 640px instead of 960px.
-
-
-explain ths to a 10 year old
-
-Yes.
-
-Think of the final room as having two invisible buttons on the floor:
-
-one button means you win
-
-one button means you lose
-
-Your old code accidentally put both buttons in the same place.
-
-So the game was thinking:
-
-“The player is standing on the win button.”
-“The player is also standing on the lose button.”
-
-That is why it was broken.
-
-The fixed code moves them apart:
-
-const winX = ROOM_PIXELS / 2 - 80;
-const winY = ROOM_PIXELS / 2;
-
-const loseX = ROOM_PIXELS / 2 + 80;
-const loseY = ROOM_PIXELS / 2;
-This means:
-
-the win point is a bit left of the middle
-
-the lose point is a bit right of the middle
-
-This part checks if the player is close enough to the win point:
-
-Math.abs(this.player.x - winX) <= closeEnough
-In simple words:
-
-“Is the player near the win button?”
-
-And this bit:
-
-const closeEnough = 25;
-means the player does not have to stand on the exact pixel. They just need to be close enough.
-
-So yes, it fixes it because the game can now tell the difference between:
-
-“Player reached the win place”
-
-and
-
-“Player reached the lose place”
-
-
-show me final code 
-
-Thought for a couple of seconds
-Here is the final fixed code with:
-
-room size reduced so it fits the screen
-
-win and lose points in different places
-
-clearer win/lose code
-
-This is based on your uploaded Phaser room-grid code. 
-
-
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Phaser Room Grid - Walking Character</title>
-
-<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
-
-<style>
-    body {
-        margin: 0;
-        background: #111;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-    }
-
-    canvas {
-        border: 2px solid white;
-    }
-</style>
-</head>
-
-<body>
-
-<script>
-
-// =====================================================
-// ROOM SETTINGS
-// =====================================================
-
-// Smaller tiles so the room fits the screen
-const TILE_SIZE = 64;
-const ROOM_SIZE = 10;
-const ROOM_PIXELS = ROOM_SIZE * TILE_SIZE;
-
-// 10x10 room world
-const WORLD_WIDTH = 10;
-const WORLD_HEIGHT = 10;
-
-
-// =====================================================
-// SCENE
-// =====================================================
-
-class GameScene extends Phaser.Scene {
-
-    constructor() {
-        super();
-
-        // Start in room A1
-        this.roomX = 0;
-        this.roomY = 0;
-    }
-
-    create() {
-
-        // Arrow keys
-        this.cursors = this.input.keyboard.createCursorKeys();
-
-        // Static wall collection
-        this.wallGroup = this.physics.add.staticGroup();
-
-        // Create room label
-        this.roomText = this.add.text(
-            ROOM_PIXELS / 2,
-            ROOM_PIXELS / 2,
-            "",
-            {
-                fontSize: "36px",
-                color: "#ffffff"
-            }
-        );
-
-        this.roomText.setOrigin(0.5);
-
-        // Draw starting room
-        this.drawRoom();
-
-        // Create player character
-        this.createPlayerCharacter(
-            ROOM_PIXELS / 2,
-            ROOM_PIXELS / 2
-        );
-
-        // Add physics body to the player
-        this.physics.add.existing(this.player);
-
-        // Collision box
-        this.player.body.setSize(30, 44);
-        this.player.body.setOffset(-15, -24);
-
-        // Allows player to leave edge to enter another room
-        this.player.body.setCollideWorldBounds(false);
-
-        // Player collides with walls
-        this.physics.add.collider(
-            this.player,
-            this.wallGroup
-        );
-    }
-
-
-    // =====================================================
-    // PLAYER CHARACTER
-    // =====================================================
-
-    createPlayerCharacter(x, y) {
-
-        this.player = this.add.container(x, y);
-
-        // Shadow
-        this.shadow = this.add.ellipse(
-            0,
-            25,
-            36,
-            10,
-            0x000000,
-            0.35
-        );
-
-        // Legs
-        this.leftLeg = this.add.rectangle(
-            -7,
-            20,
-            8,
-            24,
-            0x1f3a5f
-        );
-
-        this.rightLeg = this.add.rectangle(
-            7,
-            20,
-            8,
-            24,
-            0x1f3a5f
-        );
-
-        // Body
-        this.bodyShape = this.add.rectangle(
-            0,
-            0,
-            26,
-            32,
-            0x1abc9c
-        );
-
-        // Arms
-        this.leftArm = this.add.rectangle(
-            -18,
-            0,
-            7,
-            24,
-            0xffcc99
-        );
-
-        this.rightArm = this.add.rectangle(
-            18,
-            0,
-            7,
-            24,
-            0xffcc99
-        );
-
-        // Head and face
-        this.head = this.add.circle(
-            0,
-            -25,
-            14,
-            0xffcc99
-        );
-
-        this.hair = this.add.rectangle(
-            0,
-            -36,
-            22,
-            7,
-            0x3b2414
-        );
-
-        this.leftEye = this.add.circle(
-            -5,
-            -26,
-            2,
-            0x000000
-        );
-
-        this.rightEye = this.add.circle(
-            5,
-            -26,
-            2,
-            0x000000
-        );
-
-        // Hat
-        this.hat = this.add.rectangle(
-            0,
-            -45,
-            20,
-            10,
-            0xff00ff
-        );
-
-        this.hat2 = this.add.rectangle(
-            0,
-            -40,
-            30,
-            5,
-            0xff00ff
-        );
-
-        // Add parts to player
-        this.player.add([
-            this.shadow,
-
-
