@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Phaser Room Grid - Walking Character</title>
+<title>Phaser Room Grid - Inventory Game</title>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
 
@@ -10,10 +10,45 @@
     body {
         margin: 0;
         background: #111;
+        height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
+        font-family: Arial, sans-serif;
+    }
+
+    #gameWrapper {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    #inventory {
+        width: 130px;
+        background: #222;
+        border: 2px solid white;
+        padding: 10px;
+        color: white;
+        text-align: center;
+    }
+
+    #inventory h2 {
+        font-size: 18px;
+        margin: 0 0 10px 0;
+    }
+
+    #slots {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        justify-items: center;
+    }
+
+    .slot {
+        width: 30px;
+        height: 30px;
+        background: #444;
+        border: 2px solid #aaa;
     }
 
     canvas {
@@ -23,6 +58,28 @@
 </head>
 
 <body>
+
+<div id="gameWrapper">
+
+    <div id="inventory">
+        <h2>Inventory</h2>
+
+        <div id="slots">
+            <div class="slot"></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+            <div class="slot"></div>
+        </div>
+    </div>
+
+    <div id="gameContainer"></div>
+
+</div>
 
 <script>
 
@@ -47,6 +104,19 @@ const LOSE_Y = ROOM_PIXELS / 2;
 
 const END_DISTANCE = 35;
 
+// Collectible colours
+const ITEM_COLOURS = [
+    0xff0000, // red
+    0x00ff00, // green
+    0x0000ff, // blue
+    0xffff00, // yellow
+    0xff00ff, // pink
+    0x00ffff, // cyan
+    0xff9900, // orange
+    0xffffff, // white
+    0x9966ff  // purple
+];
+
 
 // =====================================================
 // SCENE
@@ -67,6 +137,17 @@ class GameScene extends Phaser.Scene {
 
         this.wallGroup = this.physics.add.staticGroup();
 
+        // Inventory setup
+        this.inventory = [];
+        this.inventorySlots = document.querySelectorAll(".slot");
+
+        // This remembers which room items have already been collected
+        this.collectedRooms = new Set();
+
+        // Collectible item group
+        this.itemGroup = this.physics.add.group();
+
+        // Room label
         this.roomText = this.add.text(
             ROOM_PIXELS / 2,
             ROOM_PIXELS / 2,
@@ -86,8 +167,10 @@ class GameScene extends Phaser.Scene {
         this.winPad.setVisible(false);
         this.losePad.setVisible(false);
 
+        // Draw starting room
         this.drawRoom();
 
+        // Create player
         this.createPlayerCharacter(
             ROOM_PIXELS / 2,
             ROOM_PIXELS / 2
@@ -100,9 +183,19 @@ class GameScene extends Phaser.Scene {
 
         this.player.body.setCollideWorldBounds(false);
 
+        // Player collides with walls
         this.physics.add.collider(
             this.player,
             this.wallGroup
+        );
+
+        // Player collects items
+        this.physics.add.overlap(
+            this.player,
+            this.itemGroup,
+            this.collectItem,
+            null,
+            this
         );
     }
 
@@ -310,6 +403,75 @@ class GameScene extends Phaser.Scene {
 
 
     // =====================================================
+    // COLLECTIBLE ITEMS
+    // =====================================================
+
+    createRoomItems() {
+
+        // Remove old items when changing room
+        this.itemGroup.clear(true, true);
+
+        const roomNumber = this.roomY * WORLD_WIDTH + this.roomX;
+
+        // No item in the starting room
+        if (this.roomX === 0 && this.roomY === 0) {
+            return;
+        }
+
+        // Use room number 1 to 9 for the 9 items
+        const itemIndex = roomNumber - 1;
+
+        if (itemIndex < 0 || itemIndex >= ITEM_COLOURS.length) {
+            return;
+        }
+
+        const roomKey = `${this.roomX},${this.roomY}`;
+
+        // Do not recreate the item if it has already been collected
+        if (this.collectedRooms.has(roomKey)) {
+            return;
+        }
+
+        const colour = ITEM_COLOURS[itemIndex];
+
+        // Create item shape
+        const item = this.add.circle(
+            ROOM_PIXELS / 2,
+            ROOM_PIXELS / 2 + 100,
+            18,
+            colour
+        );
+
+        item.itemColour = colour;
+        item.roomKey = roomKey;
+
+        this.physics.add.existing(item);
+
+        this.itemGroup.add(item);
+    }
+
+
+    collectItem(player, item) {
+
+        // Stop if inventory is full
+        if (this.inventory.length >= 9) {
+            return;
+        }
+
+        this.inventory.push(item.itemColour);
+
+        const slot = this.inventorySlots[this.inventory.length - 1];
+
+        slot.style.backgroundColor =
+            "#" + item.itemColour.toString(16).padStart(6, "0");
+
+        this.collectedRooms.add(item.roomKey);
+
+        item.destroy();
+    }
+
+
+    // =====================================================
     // ROOM DRAWING
     // =====================================================
 
@@ -324,6 +486,7 @@ class GameScene extends Phaser.Scene {
         const hasWest = this.roomX > 0;
         const hasEast = this.roomX < WORLD_WIDTH - 1;
 
+        // Top and bottom walls
         for (let x = 0; x < ROOM_SIZE; x++) {
 
             if (!(hasNorth && x === gap)) {
@@ -341,6 +504,7 @@ class GameScene extends Phaser.Scene {
             }
         }
 
+        // Left and right walls
         for (let y = 1; y < ROOM_SIZE - 1; y++) {
 
             if (!(hasWest && y === gap)) {
@@ -365,6 +529,9 @@ class GameScene extends Phaser.Scene {
 
         this.winPad.setVisible(isFinalRoom);
         this.losePad.setVisible(isFinalRoom);
+
+        // Create item for this room
+        this.createRoomItems();
 
         this.updateRoomLabel();
     }
@@ -511,6 +678,7 @@ class GameScene extends Phaser.Scene {
 
 const config = {
     type: Phaser.AUTO,
+    parent: "gameContainer",
 
     width: ROOM_PIXELS,
     height: ROOM_PIXELS,
