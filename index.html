@@ -1,5 +1,549 @@
-ChatGPT Plus
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Phaser Room Grid - Walking Character</title>
 
+<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
+
+<style>
+    body {
+        margin: 0;
+        background: #111;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+
+    canvas {
+        border: 2px solid white;
+    }
+</style>
+</head>
+
+<body>
+
+<script>
+
+// =====================================================
+// ROOM SETTINGS
+// =====================================================
+
+// Smaller tiles so the room fits the screen
+const TILE_SIZE = 64;
+const ROOM_SIZE = 10;
+const ROOM_PIXELS = ROOM_SIZE * TILE_SIZE;
+
+// 10x10 room world
+const WORLD_WIDTH = 10;
+const WORLD_HEIGHT = 10;
+
+
+// =====================================================
+// SCENE
+// =====================================================
+
+class GameScene extends Phaser.Scene {
+
+    constructor() {
+        super();
+
+        // Start in room A1
+        this.roomX = 0;
+        this.roomY = 0;
+    }
+
+    create() {
+
+        // Arrow keys
+        this.cursors = this.input.keyboard.createCursorKeys();
+
+        // Static wall collection
+        this.wallGroup = this.physics.add.staticGroup();
+
+        // Create room label
+        this.roomText = this.add.text(
+            ROOM_PIXELS / 2,
+            ROOM_PIXELS / 2,
+            "",
+            {
+                fontSize: "36px",
+                color: "#ffffff"
+            }
+        );
+
+        this.roomText.setOrigin(0.5);
+
+        // Draw starting room
+        this.drawRoom();
+
+        // Create player character
+        this.createPlayerCharacter(
+            ROOM_PIXELS / 2,
+            ROOM_PIXELS / 2
+        );
+
+        // Add physics body to the player
+        this.physics.add.existing(this.player);
+
+        // Collision box
+        this.player.body.setSize(30, 44);
+        this.player.body.setOffset(-15, -24);
+
+        // Allows player to leave edge to enter another room
+        this.player.body.setCollideWorldBounds(false);
+
+        // Player collides with walls
+        this.physics.add.collider(
+            this.player,
+            this.wallGroup
+        );
+    }
+
+
+    // =====================================================
+    // PLAYER CHARACTER
+    // =====================================================
+
+    createPlayerCharacter(x, y) {
+
+        this.player = this.add.container(x, y);
+
+        // Shadow
+        this.shadow = this.add.ellipse(
+            0,
+            25,
+            36,
+            10,
+            0x000000,
+            0.35
+        );
+
+        // Legs
+        this.leftLeg = this.add.rectangle(
+            -7,
+            20,
+            8,
+            24,
+            0x1f3a5f
+        );
+
+        this.rightLeg = this.add.rectangle(
+            7,
+            20,
+            8,
+            24,
+            0x1f3a5f
+        );
+
+        // Body
+        this.bodyShape = this.add.rectangle(
+            0,
+            0,
+            26,
+            32,
+            0x1abc9c
+        );
+
+        // Arms
+        this.leftArm = this.add.rectangle(
+            -18,
+            0,
+            7,
+            24,
+            0xffcc99
+        );
+
+        this.rightArm = this.add.rectangle(
+            18,
+            0,
+            7,
+            24,
+            0xffcc99
+        );
+
+        // Head and face
+        this.head = this.add.circle(
+            0,
+            -25,
+            14,
+            0xffcc99
+        );
+
+        this.hair = this.add.rectangle(
+            0,
+            -36,
+            22,
+            7,
+            0x3b2414
+        );
+
+        this.leftEye = this.add.circle(
+            -5,
+            -26,
+            2,
+            0x000000
+        );
+
+        this.rightEye = this.add.circle(
+            5,
+            -26,
+            2,
+            0x000000
+        );
+
+        // Hat
+        this.hat = this.add.rectangle(
+            0,
+            -45,
+            20,
+            10,
+            0xff00ff
+        );
+
+        this.hat2 = this.add.rectangle(
+            0,
+            -40,
+            30,
+            5,
+            0xff00ff
+        );
+
+        // Add parts to player
+        this.player.add([
+            this.shadow,
+            this.leftLeg,
+            this.rightLeg,
+            this.leftArm,
+            this.rightArm,
+            this.bodyShape,
+            this.head,
+            this.hair,
+            this.leftEye,
+            this.rightEye,
+            this.hat,
+            this.hat2
+        ]);
+
+        // Walking animation variables
+        this.walkTimer = 0;
+        this.walkFrame = 0;
+    }
+
+
+    animatePlayer(isMoving, delta) {
+
+        if (isMoving) {
+
+            this.walkTimer += delta;
+
+            if (this.walkTimer > 120) {
+                this.walkTimer = 0;
+                this.walkFrame = 1 - this.walkFrame;
+            }
+
+            if (this.walkFrame === 0) {
+                this.leftLeg.y = 18;
+                this.rightLeg.y = 23;
+
+                this.leftArm.y = 4;
+                this.rightArm.y = -4;
+            }
+            else {
+                this.leftLeg.y = 23;
+                this.rightLeg.y = 18;
+
+                this.leftArm.y = -4;
+                this.rightArm.y = 4;
+            }
+
+            this.bodyShape.y = -2;
+            this.head.y = -27;
+            this.hair.y = -38;
+            this.leftEye.y = -28;
+            this.rightEye.y = -28;
+        }
+        else {
+            this.leftLeg.y = 20;
+            this.rightLeg.y = 20;
+
+            this.leftArm.y = 0;
+            this.rightArm.y = 0;
+
+            this.bodyShape.y = 0;
+            this.head.y = -25;
+            this.hair.y = -36;
+            this.leftEye.y = -26;
+            this.rightEye.y = -26;
+        }
+    }
+
+
+    // =====================================================
+    // ROOM NAME
+    // =====================================================
+
+    updateRoomLabel() {
+
+        const letter = String.fromCharCode(65 + this.roomX);
+        const number = this.roomY + 1;
+
+        this.roomText.setText(`${letter}${number}`);
+    }
+
+
+    // =====================================================
+    // WALL CREATION
+    // =====================================================
+
+    createWall(x, y) {
+
+        const wall = this.add.rectangle(
+            x,
+            y,
+            TILE_SIZE,
+            TILE_SIZE,
+            0x666666
+        );
+
+        this.physics.add.existing(wall, true);
+
+        this.wallGroup.add(wall);
+    }
+
+
+    // =====================================================
+    // ROOM DRAWING
+    // =====================================================
+
+    drawRoom() {
+
+        // Remove previous room walls
+        this.wallGroup.clear(true, true);
+
+        const gap = Math.floor(ROOM_SIZE / 2);
+
+        // Check which neighbouring rooms exist
+        const hasNorth = this.roomY > 0;
+        const hasSouth = this.roomY < WORLD_HEIGHT - 1;
+        const hasWest = this.roomX > 0;
+        const hasEast = this.roomX < WORLD_WIDTH - 1;
+
+        // Top and bottom walls
+        for (let x = 0; x < ROOM_SIZE; x++) {
+
+            // Top wall
+            if (!(hasNorth && x === gap)) {
+                this.createWall(
+                    x * TILE_SIZE + TILE_SIZE / 2,
+                    TILE_SIZE / 2
+                );
+            }
+
+            // Bottom wall
+            if (!(hasSouth && x === gap)) {
+                this.createWall(
+                    x * TILE_SIZE + TILE_SIZE / 2,
+                    ROOM_PIXELS - TILE_SIZE / 2
+                );
+            }
+        }
+
+        // Left and right walls
+        for (let y = 1; y < ROOM_SIZE - 1; y++) {
+
+            // Left wall
+            if (!(hasWest && y === gap)) {
+                this.createWall(
+                    TILE_SIZE / 2,
+                    y * TILE_SIZE + TILE_SIZE / 2
+                );
+            }
+
+            // Right wall
+            if (!(hasEast && y === gap)) {
+                this.createWall(
+                    ROOM_PIXELS - TILE_SIZE / 2,
+                    y * TILE_SIZE + TILE_SIZE / 2
+                );
+            }
+        }
+
+        this.updateRoomLabel();
+    }
+
+
+    // =====================================================
+    // ROOM TRANSITIONS
+    // =====================================================
+
+    moveToRoom(dx, dy) {
+
+        this.roomX += dx;
+        this.roomY += dy;
+
+        this.drawRoom();
+
+        // Reposition player inside doorway
+        if (dx === 1) {
+            this.player.x = TILE_SIZE * 1.5;
+        }
+
+        if (dx === -1) {
+            this.player.x = ROOM_PIXELS - TILE_SIZE * 1.5;
+        }
+
+        if (dy === 1) {
+            this.player.y = TILE_SIZE * 1.5;
+        }
+
+        if (dy === -1) {
+            this.player.y = ROOM_PIXELS - TILE_SIZE * 1.5;
+        }
+    }
+
+
+    // =====================================================
+    // GAME LOOP
+    // =====================================================
+
+    update(time, delta) {
+
+        const speed = 220;
+        let isMoving = false;
+
+        this.player.body.setVelocity(0);
+
+        if (this.cursors.left.isDown) {
+            this.player.body.setVelocityX(-speed);
+            this.player.scaleX = -1;
+            isMoving = true;
+        }
+
+        if (this.cursors.right.isDown) {
+            this.player.body.setVelocityX(speed);
+            this.player.scaleX = 1;
+            isMoving = true;
+        }
+
+        if (this.cursors.up.isDown) {
+            this.player.body.setVelocityY(-speed);
+            isMoving = true;
+        }
+
+        if (this.cursors.down.isDown) {
+            this.player.body.setVelocityY(speed);
+            isMoving = true;
+        }
+
+        this.animatePlayer(isMoving, delta);
+
+
+        // -------------------------
+        // ROOM CHANGES
+        // -------------------------
+
+        if (
+            this.player.x < 0 &&
+            this.roomX > 0
+        ) {
+            this.moveToRoom(-1, 0);
+        }
+
+        if (
+            this.player.x > ROOM_PIXELS &&
+            this.roomX < WORLD_WIDTH - 1
+        ) {
+            this.moveToRoom(1, 0);
+        }
+
+        if (
+            this.player.y < 0 &&
+            this.roomY > 0
+        ) {
+            this.moveToRoom(0, -1);
+        }
+
+        if (
+            this.player.y > ROOM_PIXELS &&
+            this.roomY < WORLD_HEIGHT - 1
+        ) {
+            this.moveToRoom(0, 1);
+        }
+
+
+        // -------------------------
+        // END SCENE
+        // -------------------------
+
+        // These are invisible points in the final room.
+        // The win point is left of centre.
+        // The lose point is right of centre.
+
+        const winX = ROOM_PIXELS / 2 - 80;
+        const winY = ROOM_PIXELS / 2;
+
+        const loseX = ROOM_PIXELS / 2 + 80;
+        const loseY = ROOM_PIXELS / 2;
+
+        const closeEnough = 25;
+
+        // Win check
+        if (
+            this.roomX === WORLD_WIDTH - 1 &&
+            this.roomY === WORLD_HEIGHT - 1 &&
+            Math.abs(this.player.x - winX) <= closeEnough &&
+            Math.abs(this.player.y - winY) <= closeEnough
+        ) {
+            alert("You win! Thanks for playing");
+            this.scene.stop();
+        }
+
+        // Lose check
+        if (
+            this.roomX === WORLD_WIDTH - 1 &&
+            this.roomY === WORLD_HEIGHT - 1 &&
+            Math.abs(this.player.x - loseX) <= closeEnough &&
+            Math.abs(this.player.y - loseY) <= closeEnough
+        ) {
+            alert("You lose! Better luck next time");
+            this.scene.stop();
+        }
+    }
+}
+
+
+// =====================================================
+// GAME CONFIG
+// =====================================================
+
+const config = {
+    type: Phaser.AUTO,
+
+    width: ROOM_PIXELS,
+    height: ROOM_PIXELS,
+
+    backgroundColor: "#202020",
+
+    physics: {
+        default: "arcade",
+        arcade: {
+            debug: false
+        }
+    },
+
+    scene: GameScene
+};
+
+
+// Start game
+new Phaser.Game(config);
+
+</script>
+
+</body>
+</html>
 
 
 
