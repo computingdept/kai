@@ -132,7 +132,8 @@ class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        // Save the wizard image as wizard.png in the same folder as this HTML file
+        // Save the wizard image as wizard.png
+        // Put wizard.png in the same folder as this HTML file
         this.load.image("wizard", "wizard.png");
     }
 
@@ -152,7 +153,7 @@ class GameScene extends Phaser.Scene {
         // Remember dropped items in each room
         this.droppedItemsByRoom = {};
 
-        // Groups
+        // Groups for items
         this.itemGroup = this.physics.add.group();
         this.droppedGroup = this.physics.add.group();
 
@@ -192,11 +193,19 @@ class GameScene extends Phaser.Scene {
             ROOM_PIXELS / 2
         );
 
+        // Add physics to wizard
         this.physics.add.existing(this.player);
 
         // Wizard collision box
+        // This is the invisible rectangle used for collisions.
+        // It is separate from the actual picture size.
         this.player.body.setSize(28, 42);
-        this.player.body.setOffset(10, 12);
+
+        // This moves the collision box so it sits over the wizard's body.
+        this.player.body.setOffset(
+            this.player.width * 0.36,
+            this.player.height * 0.25
+        );
 
         this.player.body.setCollideWorldBounds(false);
 
@@ -235,8 +244,11 @@ class GameScene extends Phaser.Scene {
         // Create wizard sprite from image
         this.player = this.add.image(x, y, "wizard");
 
-        // Resize wizard if needed
-        this.player.setScale(1.5);
+        // SCALE FIX:
+        // 1 means original size.
+        // 0.5 means half size.
+        // 0.12 means much smaller.
+        this.player.setScale(0.12);
 
         // Walking animation timer
         this.walkTimer = 0;
