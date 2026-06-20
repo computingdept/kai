@@ -24,10 +24,10 @@
     }
 
     #inventory {
-        width: 130px;
+        width: 150px;
         background: #222;
         border: 2px solid white;
-        padding: 10px;
+        padding: 12px;
         color: white;
         text-align: center;
     }
@@ -37,16 +37,71 @@
         margin: 0 0 10px 0;
     }
 
+    #wizardChoices {
+        display: grid;
+        grid-template-columns: repeat(2, 44px);
+        grid-template-rows: repeat(2, 44px);
+        gap: 8px;
+        justify-content: center;
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #777;
+    }
+
+    .wizard-choice {
+        width: 44px;
+        height: 44px;
+        border: 2px solid #aaa;
+        background: #333;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+    }
+
+    .wizard-icon {
+        width: 24px;
+        height: 36px;
+        background: white;
+
+        /* This turns wizard.png into a coloured silhouette */
+        mask-image: url("wizard.png");
+        mask-size: contain;
+        mask-repeat: no-repeat;
+        mask-position: center;
+
+        -webkit-mask-image: url("wizard.png");
+        -webkit-mask-size: contain;
+        -webkit-mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+    }
+
+    .wizard-red {
+        background: #ff3333;
+    }
+
+    .wizard-green {
+        background: #33ff66;
+    }
+
+    .wizard-blue {
+        background: #3399ff;
+    }
+
+    .wizard-yellow {
+        background: #ffff33;
+    }
+
     #slots {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(3, 36px);
         gap: 8px;
-        justify-items: center;
+        justify-content: center;
     }
 
     .slot {
-        width: 30px;
-        height: 30px;
+        width: 36px;
+        height: 36px;
         background: #444;
         border: 2px solid #aaa;
         cursor: pointer;
@@ -65,6 +120,26 @@
     <div id="inventory">
         <h2>Inventory</h2>
 
+        <!-- 2 by 2 wizard choice grid -->
+        <div id="wizardChoices">
+            <div class="wizard-choice">
+                <div class="wizard-icon wizard-red"></div>
+            </div>
+
+            <div class="wizard-choice">
+                <div class="wizard-icon wizard-green"></div>
+            </div>
+
+            <div class="wizard-choice">
+                <div class="wizard-icon wizard-blue"></div>
+            </div>
+
+            <div class="wizard-choice">
+                <div class="wizard-icon wizard-yellow"></div>
+            </div>
+        </div>
+
+        <!-- 3 by 3 inventory grid -->
         <div id="slots">
             <div class="slot"></div>
             <div class="slot"></div>
@@ -212,9 +287,6 @@ class GameScene extends Phaser.Scene {
             null,
             this
         );
-
-        // Add four coloured wizards in the top-left corner
-        this.createWizardChoices();
     }
 
 
@@ -226,48 +298,11 @@ class GameScene extends Phaser.Scene {
 
         this.player = this.add.image(x, y, "wizard");
 
-        // Exact size.
-        // This replaces setScale(1.5).
-        // The door gap is 64px, so 34px wide fits through.
+        // Exact player size.
+        // This keeps the wizard small enough to fit through doors.
         this.player.setDisplaySize(34, 52);
 
         this.walkTimer = 0;
-    }
-
-
-    // =====================================================
-    // FOUR COLOURED WIZARDS IN TOP LEFT
-    // =====================================================
-
-    createWizardChoices() {
-
-        const startX = 35;
-        const startY = 35;
-        const gap = 38;
-
-        const wizardColours = [
-            0xff0000, // red
-            0x00ff00, // green
-            0x0000ff, // blue
-            0xffff00  // yellow
-        ];
-
-        this.wizardChoices = [];
-
-        for (let i = 0; i < 4; i++) {
-
-            const miniWizard = this.add.image(
-                startX + (i * gap),
-                startY,
-                "wizard"
-            );
-
-            miniWizard.setDisplaySize(24, 36);
-            miniWizard.setTint(wizardColours[i]);
-            miniWizard.setDepth(10);
-
-            this.wizardChoices.push(miniWizard);
-        }
     }
 
 
