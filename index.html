@@ -88,14 +88,20 @@
 // ROOM SETTINGS
 // =====================================================
 
+// Each tile is 64 pixels wide and high
 const TILE_SIZE = 64;
+
+// Each room is 10 tiles by 10 tiles
 const ROOM_SIZE = 10;
+
+// This makes each room 640px by 640px
 const ROOM_PIXELS = ROOM_SIZE * TILE_SIZE;
 
+// The world is 10 rooms wide and 10 rooms high
 const WORLD_WIDTH = 10;
 const WORLD_HEIGHT = 10;
 
-// Win / lose positions
+// Win and lose positions in the final room
 const WIN_X = ROOM_PIXELS / 2 - 100;
 const WIN_Y = ROOM_PIXELS / 2;
 
@@ -127,33 +133,37 @@ class GameScene extends Phaser.Scene {
     constructor() {
         super();
 
+        // Start in room A1
         this.roomX = 0;
         this.roomY = 0;
     }
 
     preload() {
-        // Save the wizard image as wizard.png
         // Put wizard.png in the same folder as this HTML file
         this.load.image("wizard", "wizard.png");
     }
 
     create() {
 
+        // Arrow key controls
         this.cursors = this.input.keyboard.createCursorKeys();
 
+        // Static wall group
         this.wallGroup = this.physics.add.staticGroup();
 
-        // Inventory setup
+        // Inventory data
         this.inventory = [];
+
+        // HTML inventory slots
         this.inventorySlots = document.querySelectorAll(".slot");
 
-        // Remember original collected items
+        // Remember rooms where the original item has been collected
         this.collectedRooms = new Set();
 
-        // Remember dropped items in each room
+        // Remember items dropped in each room
         this.droppedItemsByRoom = {};
 
-        // Groups for items
+        // Phaser groups for items
         this.itemGroup = this.physics.add.group();
         this.droppedGroup = this.physics.add.group();
 
@@ -164,7 +174,7 @@ class GameScene extends Phaser.Scene {
             });
         });
 
-        // Room label
+        // Room label, for example A1, B1, C1
         this.roomText = this.add.text(
             ROOM_PIXELS / 2,
             ROOM_PIXELS / 2,
@@ -177,14 +187,14 @@ class GameScene extends Phaser.Scene {
 
         this.roomText.setOrigin(0.5);
 
-        // Win and lose markers
+        // Win and lose pads
         this.winPad = this.add.circle(WIN_X, WIN_Y, 25, 0x00ff00);
         this.losePad = this.add.circle(LOSE_X, LOSE_Y, 25, 0xff0000);
 
         this.winPad.setVisible(false);
         this.losePad.setVisible(false);
 
-        // Draw starting room
+        // Draw the starting room
         this.drawRoom();
 
         // Create wizard player
@@ -193,20 +203,28 @@ class GameScene extends Phaser.Scene {
             ROOM_PIXELS / 2
         );
 
-        // Add physics to wizard
+        // Add physics to the wizard
         this.physics.add.existing(this.player);
 
-        // Wizard collision box
-        // This is the invisible rectangle used for collisions.
-        // It is separate from the actual picture size.
-        this.player.body.setSize(28, 42);
+        // -------------------------------------------------
+        // WIZARD COLLISION BOX
+        // -------------------------------------------------
+        // The visible wizard is 34px wide and 52px high.
+        // The collision box is slightly smaller.
+        // This helps the wizard fit through a 64px door gap.
+        this.player.body.setSize(24, 38);
 
-        // This moves the collision box so it sits over the wizard's body.
+        // Centre the collision box on the wizard.
+        // IMPORTANT:
+        // Because setDisplaySize changes display size,
+        // use displayWidth and displayHeight here.
         this.player.body.setOffset(
-            this.player.width * 0.36,
-            this.player.height * 0.25
+            (this.player.displayWidth - 24) / 2,
+            (this.player.displayHeight - 38) / 2
         );
 
+        // Do not trap player inside screen bounds.
+        // We need them to move past the edge to change rooms.
         this.player.body.setCollideWorldBounds(false);
 
         // Player collides with walls
@@ -244,11 +262,12 @@ class GameScene extends Phaser.Scene {
         // Create wizard sprite from image
         this.player = this.add.image(x, y, "wizard");
 
-        // SCALE FIX:
-        // 1 means original size.
-        // 0.5 means half size.
-        // 0.12 means much smaller.
-        this.player.setScale(0.12);
+        // DO NOT USE setScale(1.5)
+        // That makes the wizard far too big.
+
+        // Set the wizard to an exact screen size.
+        // The door gap is 64px, so width 34px fits through it.
+        this.player.setDisplaySize(34, 52);
 
         // Walking animation timer
         this.walkTimer = 0;
@@ -312,7 +331,7 @@ class GameScene extends Phaser.Scene {
             slot.style.backgroundColor = "#444";
         });
 
-        // Fill slots with inventory items
+        // Fill slots with inventory colours
         this.inventory.forEach((colour, index) => {
             this.inventorySlots[index].style.backgroundColor =
                 "#" + colour.toString(16).padStart(6, "0");
@@ -348,7 +367,7 @@ class GameScene extends Phaser.Scene {
             y: dropY,
             colour: colour,
 
-            // Stops the player instantly picking it back up
+            // Stops player instantly picking it back up
             canPickupAt: this.time.now + 800
         });
 
@@ -371,7 +390,7 @@ class GameScene extends Phaser.Scene {
 
         const roomKey = `${this.roomX},${this.roomY}`;
 
-        // Spread items around the map
+        // Original items are placed in specific rooms
         const itemRooms = {
             "1,0": 0, // B1 red
             "3,2": 1, // D3 green
