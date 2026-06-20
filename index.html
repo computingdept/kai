@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Phaser Room Grid - Wizard Class Game</title>
+<title>Phaser Room Grid - Player Class Game</title>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
 
@@ -24,7 +24,7 @@
     }
 
     #inventory {
-        width: 160px;
+        width: 170px;
         background: #222;
         border: 2px solid white;
         padding: 12px;
@@ -37,69 +37,47 @@
         margin: 0 0 10px 0;
     }
 
-    #wizardChoices {
+    #playerChoices {
         display: grid;
-        grid-template-columns: repeat(2, 50px);
-        grid-template-rows: repeat(2, 50px);
+        grid-template-columns: repeat(2, 58px);
+        grid-template-rows: repeat(2, 58px);
         gap: 8px;
         justify-content: center;
         margin-bottom: 10px;
     }
 
-    .wizard-choice {
-        width: 50px;
-        height: 50px;
+    .player-choice {
+        width: 58px;
+        height: 58px;
         border: 2px solid #aaa;
         background: #333;
         display: flex;
         justify-content: center;
         align-items: center;
         cursor: pointer;
+        position: relative;
     }
 
-    .wizard-choice.selected {
+    .player-choice.selected {
         border: 3px solid white;
         background: #555;
     }
 
-    .wizard-icon {
-        width: 26px;
-        height: 38px;
-
-        mask-image: url("wizard.png");
-        mask-size: contain;
-        mask-repeat: no-repeat;
-        mask-position: center;
-
-        -webkit-mask-image: url("wizard.png");
-        -webkit-mask-size: contain;
-        -webkit-mask-repeat: no-repeat;
-        -webkit-mask-position: center;
+    .player-choice img {
+        max-width: 36px;
+        max-height: 46px;
+        object-fit: contain;
+        pointer-events: none;
     }
 
-    .wizard-red {
-        background: #ff3333;
-    }
-
-    .wizard-green {
-        background: #33ff66;
-    }
-
-    .wizard-blue {
-        background: #3399ff;
-    }
-
-    .wizard-yellow {
-        background: #ffff33;
-    }
-
-    #wizardStats {
+    #playerStats {
         font-size: 13px;
         background: #333;
         border: 1px solid #777;
         padding: 6px;
         margin-bottom: 12px;
-        min-height: 38px;
+        min-height: 82px;
+        line-height: 1.35;
     }
 
     #slots {
@@ -128,30 +106,32 @@
 <div id="gameWrapper">
 
     <div id="inventory">
-        <h2>Inventory</h2>
+        <h2>Party</h2>
 
-        <div id="wizardChoices">
-            <div class="wizard-choice" data-wizard="0">
-                <div class="wizard-icon wizard-red"></div>
+        <!-- 2 by 2 player class selector -->
+        <div id="playerChoices">
+            <div class="player-choice selected" data-player="0">
+                <img src="warrior.png" alt="Warrior">
             </div>
 
-            <div class="wizard-choice" data-wizard="1">
-                <div class="wizard-icon wizard-green"></div>
+            <div class="player-choice" data-player="1">
+                <img src="cleric.png" alt="Cleric">
             </div>
 
-            <div class="wizard-choice" data-wizard="2">
-                <div class="wizard-icon wizard-blue"></div>
+            <div class="player-choice" data-player="2">
+                <img src="wizard.png" alt="Wizard">
             </div>
 
-            <div class="wizard-choice" data-wizard="3">
-                <div class="wizard-icon wizard-yellow"></div>
+            <div class="player-choice" data-player="3">
+                <img src="rogue.png" alt="Rogue">
             </div>
         </div>
 
-        <div id="wizardStats">
-            Choose a wizard
+        <div id="playerStats">
+            Choose a player
         </div>
 
+        <!-- 3 by 3 inventory grid -->
         <div id="slots">
             <div class="slot"></div>
             <div class="slot"></div>
@@ -172,15 +152,30 @@
 <script>
 
 // =====================================================
-// WIZARD CLASS DATA
+// PLAYER CLASS DATA
 // =====================================================
 
-class WizardType {
+class PlayerClass {
 
-    constructor(name, colour, speed, displayWidth, displayHeight, bodyWidth, bodyHeight) {
+    constructor(
+        name,
+        imageKey,
+        speed,
+        health,
+        damage,
+        magic,
+        displayWidth,
+        displayHeight,
+        bodyWidth,
+        bodyHeight
+    ) {
         this.name = name;
-        this.colour = colour;
+        this.imageKey = imageKey;
+
         this.speed = speed;
+        this.health = health;
+        this.damage = damage;
+        this.magic = magic;
 
         this.displayWidth = displayWidth;
         this.displayHeight = displayHeight;
@@ -190,41 +185,55 @@ class WizardType {
     }
 }
 
-const WIZARD_CLASSES = [
-    new WizardType(
-        "Fire Wizard",
-        0xff3333,
-        220,
+
+// Each class can now have different stats and a different image.
+const PLAYER_CLASSES = [
+    new PlayerClass(
+        "Warrior",
+        "warrior",
+        210,
+        120,
+        20,
+        0,
+        38,
+        52,
+        24,
+        36
+    ),
+
+    new PlayerClass(
+        "Cleric",
+        "cleric",
+        200,
+        100,
+        10,
+        80,
         34,
         52,
         22,
         34
     ),
 
-    new WizardType(
-        "Forest Wizard",
-        0x33ff66,
-        250,
-        32,
-        50,
-        20,
-        32
+    new PlayerClass(
+        "Wizard",
+        "wizard",
+        220,
+        80,
+        8,
+        120,
+        34,
+        52,
+        22,
+        34
     ),
 
-    new WizardType(
-        "Frost Wizard",
-        0x3399ff,
-        190,
-        38,
-        54,
-        24,
-        36
-    ),
-
-    new WizardType(
-        "Storm Wizard",
-        0xffff33,
+    new PlayerClass(
+        "Rogue",
+        "rogue",
         280,
+        70,
+        15,
+        20,
         30,
         48,
         18,
@@ -266,7 +275,7 @@ const ITEM_COLOURS = [
 
 
 // =====================================================
-// SCENE
+// MAIN GAME SCENE
 // =====================================================
 
 class GameScene extends Phaser.Scene {
@@ -277,12 +286,19 @@ class GameScene extends Phaser.Scene {
         this.roomX = 0;
         this.roomY = 0;
 
-        this.currentWizardClass = WIZARD_CLASSES[0];
+        this.currentPlayerClass = PLAYER_CLASSES[0];
     }
 
+
     preload() {
+
+        // These image files must be in the same folder as this HTML file.
+        this.load.image("warrior", "warrior.png");
+        this.load.image("cleric", "cleric.png");
         this.load.image("wizard", "wizard.png");
+        this.load.image("rogue", "rogue.png");
     }
+
 
     create() {
 
@@ -334,9 +350,9 @@ class GameScene extends Phaser.Scene {
 
         this.player.body.setCollideWorldBounds(false);
 
-        this.applyWizardClass(this.currentWizardClass);
+        this.applyPlayerClass(this.currentPlayerClass);
 
-        this.setupWizardChoiceButtons();
+        this.setupPlayerChoiceButtons();
 
         this.physics.add.collider(
             this.player,
@@ -362,64 +378,76 @@ class GameScene extends Phaser.Scene {
 
 
     // =====================================================
-    // PLAYER WIZARD
+    // PLAYER CHARACTER
     // =====================================================
 
     createPlayerCharacter(x, y) {
 
-        this.player = this.add.image(x, y, "wizard");
+        // Start with the first class image.
+        this.player = this.add.image(
+            x,
+            y,
+            this.currentPlayerClass.imageKey
+        );
 
         // No setScale(1.5)
-        // Size comes from the chosen wizard class.
+        // The chosen class controls size instead.
         this.walkTimer = 0;
     }
 
 
-    applyWizardClass(wizardClass) {
+    applyPlayerClass(playerClass) {
 
-        this.currentWizardClass = wizardClass;
+        this.currentPlayerClass = playerClass;
 
+        // Change the player image.
+        this.player.setTexture(playerClass.imageKey);
+
+        // Set the exact visible size.
         this.player.setDisplaySize(
-            wizardClass.displayWidth,
-            wizardClass.displayHeight
+            playerClass.displayWidth,
+            playerClass.displayHeight
         );
 
-        this.player.setTintFill(wizardClass.colour);
+        // Clear any old tint.
+        this.player.clearTint();
 
         if (this.player.body) {
 
-            // FIXED:
-            // The third parameter true centres the body automatically.
-            // This avoids offset problems.
+            // Collision box.
+            // The true value centres the body automatically.
             this.player.body.setSize(
-                wizardClass.bodyWidth,
-                wizardClass.bodyHeight,
+                playerClass.bodyWidth,
+                playerClass.bodyHeight,
                 true
             );
         }
 
-        const statsBox = document.querySelector("#wizardStats");
+        const statsBox = document.querySelector("#playerStats");
 
         statsBox.innerHTML = `
-            <strong>${wizardClass.name}</strong><br>
-            Speed: ${wizardClass.speed}
+            <strong>${playerClass.name}</strong><br>
+            HP: ${playerClass.health}<br>
+            Damage: ${playerClass.damage}<br>
+            Magic: ${playerClass.magic}<br>
+            Speed: ${playerClass.speed}
         `;
     }
 
 
-    setupWizardChoiceButtons() {
+    setupPlayerChoiceButtons() {
 
-        const buttons = document.querySelectorAll(".wizard-choice");
+        const buttons = document.querySelectorAll(".player-choice");
 
         buttons.forEach(button => {
 
             button.addEventListener("click", () => {
 
-                const wizardIndex = Number(button.dataset.wizard);
+                const playerIndex = Number(button.dataset.player);
 
-                const selectedClass = WIZARD_CLASSES[wizardIndex];
+                const selectedClass = PLAYER_CLASSES[playerIndex];
 
-                this.applyWizardClass(selectedClass);
+                this.applyPlayerClass(selectedClass);
 
                 buttons.forEach(btn => {
                     btn.classList.remove("selected");
@@ -428,8 +456,6 @@ class GameScene extends Phaser.Scene {
                 button.classList.add("selected");
             });
         });
-
-        buttons[0].classList.add("selected");
     }
 
 
@@ -445,6 +471,10 @@ class GameScene extends Phaser.Scene {
     }
 
 
+    // =====================================================
+    // ROOM LABEL
+    // =====================================================
+
     updateRoomLabel() {
 
         const letter = String.fromCharCode(65 + this.roomX);
@@ -453,6 +483,10 @@ class GameScene extends Phaser.Scene {
         this.roomText.setText(`${letter}${number}`);
     }
 
+
+    // =====================================================
+    // WALL CREATION
+    // =====================================================
 
     createWall(x, y) {
 
@@ -469,6 +503,10 @@ class GameScene extends Phaser.Scene {
     }
 
 
+    // =====================================================
+    // INVENTORY DISPLAY
+    // =====================================================
+
     updateInventoryDisplay() {
 
         this.inventorySlots.forEach(slot => {
@@ -481,6 +519,10 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+
+    // =====================================================
+    // DROP INVENTORY ITEM
+    // =====================================================
 
     dropInventoryItem(slotIndex) {
 
@@ -514,6 +556,10 @@ class GameScene extends Phaser.Scene {
         this.createDroppedItems();
     }
 
+
+    // =====================================================
+    // NORMAL ROOM ITEMS
+    // =====================================================
 
     createRoomItems() {
 
@@ -556,8 +602,7 @@ class GameScene extends Phaser.Scene {
 
         this.physics.add.existing(item);
 
-        // FIXED:
-        // Make the physics body match the visible circle.
+        // Make the physics body match the circle.
         item.body.setCircle(18);
 
         this.itemGroup.add(item);
@@ -579,6 +624,10 @@ class GameScene extends Phaser.Scene {
         item.destroy();
     }
 
+
+    // =====================================================
+    // DROPPED ITEMS
+    // =====================================================
 
     createDroppedItems() {
 
@@ -605,7 +654,6 @@ class GameScene extends Phaser.Scene {
 
             this.physics.add.existing(item);
 
-            // Keep dropped item collision smaller and centred.
             item.body.setSize(24, 24, true);
 
             this.droppedGroup.add(item);
@@ -639,6 +687,10 @@ class GameScene extends Phaser.Scene {
     }
 
 
+    // =====================================================
+    // ROOM DRAWING
+    // =====================================================
+
     drawRoom() {
 
         this.wallGroup.clear(true, true);
@@ -650,6 +702,7 @@ class GameScene extends Phaser.Scene {
         const hasWest = this.roomX > 0;
         const hasEast = this.roomX < WORLD_WIDTH - 1;
 
+        // Top and bottom walls.
         for (let x = 0; x < ROOM_SIZE; x++) {
 
             if (!(hasNorth && x === gap)) {
@@ -667,6 +720,7 @@ class GameScene extends Phaser.Scene {
             }
         }
 
+        // Left and right walls.
         for (let y = 1; y < ROOM_SIZE - 1; y++) {
 
             if (!(hasWest && y === gap)) {
@@ -698,6 +752,10 @@ class GameScene extends Phaser.Scene {
     }
 
 
+    // =====================================================
+    // ROOM TRANSITIONS
+    // =====================================================
+
     moveToRoom(dx, dy) {
 
         this.roomX += dx;
@@ -705,6 +763,7 @@ class GameScene extends Phaser.Scene {
 
         this.drawRoom();
 
+        // Place the player safely inside the next room.
         if (dx === 1) {
             this.player.x = TILE_SIZE * 1.5;
         }
@@ -721,14 +780,17 @@ class GameScene extends Phaser.Scene {
             this.player.y = ROOM_PIXELS - TILE_SIZE * 1.5;
         }
 
-        // Stop movement carrying through weirdly after changing rooms.
         this.player.body.setVelocity(0);
     }
 
 
+    // =====================================================
+    // GAME LOOP
+    // =====================================================
+
     update(time, delta) {
 
-        const speed = this.currentWizardClass.speed;
+        const speed = this.currentPlayerClass.speed;
         let isMoving = false;
 
         this.player.body.setVelocity(0);
@@ -755,8 +817,7 @@ class GameScene extends Phaser.Scene {
             isMoving = true;
         }
 
-        // FIXED:
-        // Stops diagonal movement being faster.
+        // Stop diagonal movement being faster.
         if (isMoving) {
             this.player.body.velocity.normalize().scale(speed);
         }
