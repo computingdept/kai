@@ -97,6 +97,49 @@
     canvas {
         border: 2px solid #fff8e7;
     }
+
+    #endScreen {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 999;
+        justify-content: center;
+        align-items: center;
+    }
+
+    #endBox {
+        background: #1E1F24;
+        border: 3px solid #FFF8E7;
+        color: #FFF8E7;
+        padding: 30px;
+        width: 380px;
+        text-align: center;
+        font-family: Arial, sans-serif;
+    }
+
+    #endBox h1 {
+        font-size: 44px;
+        margin: 0 0 12px 0;
+    }
+
+    #endBox p {
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+
+    #endBox button {
+        font-size: 18px;
+        padding: 10px 18px;
+        cursor: pointer;
+        background: #5B5448;
+        color: #FFF8E7;
+        border: 2px solid #FFF8E7;
+    }
+
+    #endBox button:hover {
+        background: #7A7263;
+    }
 </style>
 </head>
 
@@ -146,6 +189,14 @@
 
 </div>
 
+<div id="endScreen">
+    <div id="endBox">
+        <h1 id="endTitle"></h1>
+        <p id="endMessage"></p>
+        <button onclick="location.reload()">Play again</button>
+    </div>
+</div>
+
 <script>
 
 // =====================================================
@@ -178,11 +229,12 @@ const PLAYER_OUTLINE = 0xFFF8E7;
 // WIN / LOSE SETTINGS
 // =====================================================
 
-const WIN_X = ROOM_PIXELS / 2 - 100;
-const WIN_Y = ROOM_PIXELS / 2;
+// These are in room A1.
+const WIN_X = ROOM_PIXELS / 2 - 120;
+const WIN_Y = ROOM_PIXELS / 2 + 120;
 
-const LOSE_X = ROOM_PIXELS / 2 + 100;
-const LOSE_Y = ROOM_PIXELS / 2;
+const LOSE_X = ROOM_PIXELS / 2 + 120;
+const LOSE_Y = ROOM_PIXELS / 2 + 120;
 
 const END_DISTANCE = 35;
 
@@ -315,6 +367,7 @@ class GameScene extends Phaser.Scene {
         this.currentPlayerClass = PLAYER_CLASSES[0];
 
         this.wallDecorObjects = [];
+        this.gameEnded = false;
     }
 
 
@@ -363,8 +416,18 @@ class GameScene extends Phaser.Scene {
         this.roomText.setOrigin(0.5);
         this.roomText.setDepth(20);
 
-        this.winPad = this.add.circle(WIN_X, WIN_Y, 25, 0x00ff00);
-        this.losePad = this.add.circle(LOSE_X, LOSE_Y, 25, 0xff0000);
+        // Win and lose zones.
+        this.winPad = this.add.circle(WIN_X, WIN_Y, 28, 0x00ff66);
+        this.losePad = this.add.circle(LOSE_X, LOSE_Y, 28, 0xff3333);
+
+        this.winPad.setAlpha(0.7);
+        this.losePad.setAlpha(0.7);
+
+        this.winPad.setStrokeStyle(3, 0xffffff);
+        this.losePad.setStrokeStyle(3, 0xffffff);
+
+        this.winPad.setDepth(6);
+        this.losePad.setDepth(6);
 
         this.winPad.setVisible(false);
         this.losePad.setVisible(false);
@@ -404,6 +467,33 @@ class GameScene extends Phaser.Scene {
             null,
             this
         );
+    }
+
+
+    // =====================================================
+    // END SCREEN
+    // =====================================================
+
+    showEndScreen(title, message, colour) {
+
+        if (this.gameEnded) {
+            return;
+        }
+
+        this.gameEnded = true;
+
+        const endScreen = document.querySelector("#endScreen");
+        const endTitle = document.querySelector("#endTitle");
+        const endMessage = document.querySelector("#endMessage");
+
+        endTitle.textContent = title;
+        endMessage.textContent = message;
+        endTitle.style.color = colour;
+
+        endScreen.style.display = "flex";
+
+        this.player.body.setVelocity(0);
+        this.scene.pause();
     }
 
 
@@ -869,12 +959,13 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        const isFinalRoom =
-            this.roomX === WORLD_WIDTH - 1 &&
-            this.roomY === WORLD_HEIGHT - 1;
+        // Win and lose zones only appear in A1.
+        const isStartRoom =
+            this.roomX === 0 &&
+            this.roomY === 0;
 
-        this.winPad.setVisible(isFinalRoom);
-        this.losePad.setVisible(isFinalRoom);
+        this.winPad.setVisible(isStartRoom);
+        this.losePad.setVisible(isStartRoom);
 
         this.createRoomItems();
         this.createDroppedItems();
@@ -925,6 +1016,10 @@ class GameScene extends Phaser.Scene {
     // =====================================================
 
     update(time, delta) {
+
+        if (this.gameEnded) {
+            return;
+        }
 
         const speed = this.currentPlayerClass.speed;
         let isMoving = false;
@@ -995,12 +1090,12 @@ class GameScene extends Phaser.Scene {
 
 
         // -------------------------
-        // WIN / LOSE CHECK
+        // WIN / LOSE CHECK IN A1
         // -------------------------
 
         if (
-            this.roomX === WORLD_WIDTH - 1 &&
-            this.roomY === WORLD_HEIGHT - 1 &&
+            this.roomX === 0 &&
+            this.roomY === 0 &&
             Phaser.Math.Distance.Between(
                 this.player.x,
                 this.player.y,
@@ -1008,14 +1103,17 @@ class GameScene extends Phaser.Scene {
                 WIN_Y
             ) <= END_DISTANCE
         ) {
-            alert("You win! Thanks for playing");
-            this.scene.stop();
+            this.showEndScreen(
+                "You Win!",
+                "You stepped into the winning zone.",
+                "#00ff66"
+            );
             return;
         }
 
         if (
-            this.roomX === WORLD_WIDTH - 1 &&
-            this.roomY === WORLD_HEIGHT - 1 &&
+            this.roomX === 0 &&
+            this.roomY === 0 &&
             Phaser.Math.Distance.Between(
                 this.player.x,
                 this.player.y,
@@ -1023,8 +1121,11 @@ class GameScene extends Phaser.Scene {
                 LOSE_Y
             ) <= END_DISTANCE
         ) {
-            alert("You lose! Better luck next time");
-            this.scene.stop();
+            this.showEndScreen(
+                "You Lose!",
+                "You stepped into the danger zone.",
+                "#ff4444"
+            );
             return;
         }
     }
