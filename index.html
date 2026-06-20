@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Phaser Room Grid - Player Class Game</title>
+<title>Phaser Room Grid - Player Class Cave Game</title>
 
 <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
 
@@ -24,79 +24,78 @@
     }
 
     #inventory {
-        width: 170px;
-        background: #222;
-        border: 2px solid white;
+        width: 180px;
+        background: #1b1b1b;
+        border: 2px solid #fff8e7;
         padding: 12px;
         color: white;
         text-align: center;
     }
 
     #inventory h2 {
-        font-size: 20px;
-        margin: 0 0 10px 0;
+        font-size: 22px;
+        margin: 0 0 12px 0;
     }
 
     #playerChoices {
         display: grid;
-        grid-template-columns: repeat(2, 58px);
-        grid-template-rows: repeat(2, 58px);
+        grid-template-columns: repeat(2, 64px);
+        grid-template-rows: repeat(2, 64px);
         gap: 8px;
         justify-content: center;
         margin-bottom: 10px;
     }
 
     .player-choice {
-        width: 58px;
-        height: 58px;
+        width: 64px;
+        height: 64px;
         border: 2px solid #aaa;
         background: #333;
         display: flex;
         justify-content: center;
         align-items: center;
         cursor: pointer;
-        position: relative;
     }
 
     .player-choice.selected {
-        border: 3px solid white;
+        border: 3px solid #fff8e7;
         background: #555;
     }
 
     .player-choice img {
-        max-width: 36px;
+        max-width: 46px;
         max-height: 46px;
         object-fit: contain;
         pointer-events: none;
     }
 
     #playerStats {
-        font-size: 13px;
+        font-size: 14px;
         background: #333;
         border: 1px solid #777;
-        padding: 6px;
+        padding: 8px;
         margin-bottom: 12px;
-        min-height: 82px;
+        min-height: 90px;
         line-height: 1.35;
     }
 
     #slots {
         display: grid;
-        grid-template-columns: repeat(3, 36px);
+        grid-template-columns: repeat(3, 42px);
         gap: 8px;
         justify-content: center;
     }
 
     .slot {
-        width: 36px;
-        height: 36px;
+        width: 42px;
+        height: 42px;
         background: #444;
         border: 2px solid #aaa;
         cursor: pointer;
     }
 
     canvas {
-        border: 2px solid white;
+        border: 2px solid #fff8e7;
     }
 </style>
 </head>
@@ -108,7 +107,6 @@
     <div id="inventory">
         <h2>Party</h2>
 
-        <!-- 2 by 2 player class selector -->
         <div id="playerChoices">
             <div class="player-choice selected" data-player="0">
                 <img src="warrior.png" alt="Warrior">
@@ -131,7 +129,6 @@
             Choose a player
         </div>
 
-        <!-- 3 by 3 inventory grid -->
         <div id="slots">
             <div class="slot"></div>
             <div class="slot"></div>
@@ -152,6 +149,62 @@
 <script>
 
 // =====================================================
+// ROOM SETTINGS
+// =====================================================
+
+const TILE_SIZE = 64;
+const ROOM_SIZE = 10;
+const ROOM_PIXELS = ROOM_SIZE * TILE_SIZE;
+
+const WORLD_WIDTH = 10;
+const WORLD_HEIGHT = 10;
+
+
+// =====================================================
+// COLOUR PALETTE
+// =====================================================
+
+const FLOOR_COLOR = "#1E1F24";
+
+const WALL_BASE = 0x5B5448;
+const WALL_DARK = 0x3F3A31;
+const WALL_LIGHT = 0x7A7263;
+const WALL_CHIP = 0x8B8374;
+
+const PLAYER_OUTLINE = 0xFFF8E7;
+
+
+// =====================================================
+// WIN / LOSE SETTINGS
+// =====================================================
+
+const WIN_X = ROOM_PIXELS / 2 - 100;
+const WIN_Y = ROOM_PIXELS / 2;
+
+const LOSE_X = ROOM_PIXELS / 2 + 100;
+const LOSE_Y = ROOM_PIXELS / 2;
+
+const END_DISTANCE = 35;
+
+
+// =====================================================
+// ITEM COLOURS
+// =====================================================
+
+const ITEM_COLOURS = [
+    0xff0000,
+    0x00ff00,
+    0x0000ff,
+    0xffff00,
+    0xff00ff,
+    0x00ffff,
+    0xff9900,
+    0xffffff,
+    0x9966ff
+];
+
+
+// =====================================================
 // PLAYER CLASS DATA
 // =====================================================
 
@@ -160,6 +213,7 @@ class PlayerClass {
     constructor(
         name,
         imageKey,
+        colour,
         speed,
         health,
         damage,
@@ -171,6 +225,7 @@ class PlayerClass {
     ) {
         this.name = name;
         this.imageKey = imageKey;
+        this.colour = colour;
 
         this.speed = speed;
         this.health = health;
@@ -186,91 +241,62 @@ class PlayerClass {
 }
 
 
-// Each class can now have different stats and a different image.
 const PLAYER_CLASSES = [
     new PlayerClass(
         "Warrior",
         "warrior",
+        0x5DA9E9,
         210,
         120,
         20,
         0,
-        38,
-        52,
+        42,
+        42,
         24,
-        36
+        24
     ),
 
     new PlayerClass(
         "Cleric",
         "cleric",
+        0xE9C46A,
         200,
         100,
         10,
         80,
-        34,
-        52,
-        22,
-        34
+        42,
+        42,
+        24,
+        24
     ),
 
     new PlayerClass(
         "Wizard",
         "wizard",
+        0x9B5DE5,
         220,
         80,
         8,
         120,
-        34,
-        52,
-        22,
-        34
+        42,
+        42,
+        24,
+        24
     ),
 
     new PlayerClass(
         "Rogue",
         "rogue",
+        0x2EC4B6,
         280,
         70,
         15,
         20,
-        30,
-        48,
-        18,
-        30
+        42,
+        42,
+        24,
+        24
     )
-];
-
-
-// =====================================================
-// ROOM SETTINGS
-// =====================================================
-
-const TILE_SIZE = 64;
-const ROOM_SIZE = 10;
-const ROOM_PIXELS = ROOM_SIZE * TILE_SIZE;
-
-const WORLD_WIDTH = 10;
-const WORLD_HEIGHT = 10;
-
-const WIN_X = ROOM_PIXELS / 2 - 100;
-const WIN_Y = ROOM_PIXELS / 2;
-
-const LOSE_X = ROOM_PIXELS / 2 + 100;
-const LOSE_Y = ROOM_PIXELS / 2;
-
-const END_DISTANCE = 35;
-
-const ITEM_COLOURS = [
-    0xff0000,
-    0x00ff00,
-    0x0000ff,
-    0xffff00,
-    0xff00ff,
-    0x00ffff,
-    0xff9900,
-    0xffffff,
-    0x9966ff
 ];
 
 
@@ -287,12 +313,13 @@ class GameScene extends Phaser.Scene {
         this.roomY = 0;
 
         this.currentPlayerClass = PLAYER_CLASSES[0];
+
+        this.wallDecorObjects = [];
     }
 
 
     preload() {
 
-        // These image files must be in the same folder as this HTML file.
         this.load.image("warrior", "warrior.png");
         this.load.image("cleric", "cleric.png");
         this.load.image("wizard", "wizard.png");
@@ -327,11 +354,14 @@ class GameScene extends Phaser.Scene {
             "",
             {
                 fontSize: "36px",
-                color: "#ffffff"
+                color: "#FFF8E7",
+                stroke: "#000000",
+                strokeThickness: 4
             }
         );
 
         this.roomText.setOrigin(0.5);
+        this.roomText.setDepth(20);
 
         this.winPad = this.add.circle(WIN_X, WIN_Y, 25, 0x00ff00);
         this.losePad = this.add.circle(LOSE_X, LOSE_Y, 25, 0xff0000);
@@ -383,15 +413,27 @@ class GameScene extends Phaser.Scene {
 
     createPlayerCharacter(x, y) {
 
-        // Start with the first class image.
+        // Coloured base circle under the player.
+        this.playerBase = this.add.circle(
+            x,
+            y,
+            19,
+            this.currentPlayerClass.colour
+        );
+
+        this.playerBase.setAlpha(0.35);
+        this.playerBase.setStrokeStyle(3, PLAYER_OUTLINE);
+        this.playerBase.setDepth(8);
+
+        // Actual player image.
         this.player = this.add.image(
             x,
             y,
             this.currentPlayerClass.imageKey
         );
 
-        // No setScale(1.5)
-        // The chosen class controls size instead.
+        this.player.setDepth(10);
+
         this.walkTimer = 0;
     }
 
@@ -400,22 +442,24 @@ class GameScene extends Phaser.Scene {
 
         this.currentPlayerClass = playerClass;
 
-        // Change the player image.
         this.player.setTexture(playerClass.imageKey);
 
-        // Set the exact visible size.
         this.player.setDisplaySize(
             playerClass.displayWidth,
             playerClass.displayHeight
         );
 
-        // Clear any old tint.
-        this.player.clearTint();
+        // Tint the black player sprite so it is visible on the cave floor.
+        this.player.setTintFill(playerClass.colour);
+
+        if (this.playerBase) {
+            this.playerBase.setFillStyle(playerClass.colour);
+            this.playerBase.setStrokeStyle(3, PLAYER_OUTLINE);
+            this.playerBase.setAlpha(0.35);
+        }
 
         if (this.player.body) {
 
-            // Collision box.
-            // The true value centres the body automatically.
             this.player.body.setSize(
                 playerClass.bodyWidth,
                 playerClass.bodyHeight,
@@ -468,6 +512,11 @@ class GameScene extends Phaser.Scene {
         else {
             this.player.angle = 0;
         }
+
+        if (this.playerBase) {
+            this.playerBase.x = this.player.x;
+            this.playerBase.y = this.player.y;
+        }
     }
 
 
@@ -485,21 +534,99 @@ class GameScene extends Phaser.Scene {
 
 
     // =====================================================
-    // WALL CREATION
+    // WALL DECOR CLEANUP
+    // =====================================================
+
+    clearWallDecor() {
+
+        this.wallDecorObjects.forEach(obj => {
+            obj.destroy();
+        });
+
+        this.wallDecorObjects = [];
+    }
+
+
+    addWallDecor(obj) {
+        this.wallDecorObjects.push(obj);
+    }
+
+
+    // =====================================================
+    // CAVE WALL CREATION
     // =====================================================
 
     createWall(x, y) {
 
+        // Main physical wall block.
         const wall = this.add.rectangle(
             x,
             y,
             TILE_SIZE,
             TILE_SIZE,
-            0x666666
+            WALL_BASE
         );
+
+        wall.setDepth(3);
 
         this.physics.add.existing(wall, true);
         this.wallGroup.add(wall);
+
+        // Lighter top edge.
+        const topEdge = this.add.rectangle(
+            x,
+            y - TILE_SIZE / 2 + 4,
+            TILE_SIZE,
+            8,
+            WALL_LIGHT
+        );
+
+        topEdge.setDepth(4);
+        this.addWallDecor(topEdge);
+
+        // Dark lower edge.
+        const bottomEdge = this.add.rectangle(
+            x,
+            y + TILE_SIZE / 2 - 4,
+            TILE_SIZE,
+            8,
+            WALL_DARK
+        );
+
+        bottomEdge.setDepth(4);
+        this.addWallDecor(bottomEdge);
+
+        // Random-looking cave cracks.
+        const cracks = this.add.graphics();
+        cracks.setDepth(5);
+
+        cracks.lineStyle(2, WALL_DARK, 0.8);
+
+        cracks.beginPath();
+        cracks.moveTo(x - 20, y - 12);
+        cracks.lineTo(x - 8, y - 4);
+        cracks.lineTo(x - 14, y + 8);
+        cracks.strokePath();
+
+        cracks.beginPath();
+        cracks.moveTo(x + 12, y - 18);
+        cracks.lineTo(x + 4, y - 4);
+        cracks.lineTo(x + 18, y + 10);
+        cracks.strokePath();
+
+        this.addWallDecor(cracks);
+
+        // Small chipped rock highlight.
+        const chip = this.add.rectangle(
+            x + 18,
+            y - 18,
+            12,
+            4,
+            WALL_CHIP
+        );
+
+        chip.setDepth(5);
+        this.addWallDecor(chip);
     }
 
 
@@ -597,12 +724,13 @@ class GameScene extends Phaser.Scene {
             colour
         );
 
+        item.setDepth(7);
+
         item.itemColour = colour;
         item.roomKey = roomKey;
 
         this.physics.add.existing(item);
 
-        // Make the physics body match the circle.
         item.body.setCircle(18);
 
         this.itemGroup.add(item);
@@ -646,6 +774,8 @@ class GameScene extends Phaser.Scene {
                 28,
                 itemData.colour
             );
+
+            item.setDepth(7);
 
             item.itemColour = itemData.colour;
             item.roomKey = roomKey;
@@ -694,6 +824,7 @@ class GameScene extends Phaser.Scene {
     drawRoom() {
 
         this.wallGroup.clear(true, true);
+        this.clearWallDecor();
 
         const gap = Math.floor(ROOM_SIZE / 2);
 
@@ -763,7 +894,7 @@ class GameScene extends Phaser.Scene {
 
         this.drawRoom();
 
-        // Place the player safely inside the next room.
+        // Place the player safely inside the new room.
         if (dx === 1) {
             this.player.x = TILE_SIZE * 1.5;
         }
@@ -778,6 +909,11 @@ class GameScene extends Phaser.Scene {
 
         if (dy === -1) {
             this.player.y = ROOM_PIXELS - TILE_SIZE * 1.5;
+        }
+
+        if (this.playerBase) {
+            this.playerBase.x = this.player.x;
+            this.playerBase.y = this.player.y;
         }
 
         this.player.body.setVelocity(0);
@@ -906,7 +1042,7 @@ const config = {
     width: ROOM_PIXELS,
     height: ROOM_PIXELS,
 
-    backgroundColor: "#202020",
+    backgroundColor: FLOOR_COLOR,
 
     physics: {
         default: "arcade",
