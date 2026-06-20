@@ -130,7 +130,6 @@
     <div id="inventory">
         <h2>Inventory</h2>
 
-        <!-- 2 by 2 wizard class selector -->
         <div id="wizardChoices">
             <div class="wizard-choice" data-wizard="0">
                 <div class="wizard-icon wizard-red"></div>
@@ -153,7 +152,6 @@
             Choose a wizard
         </div>
 
-        <!-- 3 by 3 inventory grid -->
         <div id="slots">
             <div class="slot"></div>
             <div class="slot"></div>
@@ -199,8 +197,8 @@ const WIZARD_CLASSES = [
         220,
         34,
         52,
-        24,
-        38
+        22,
+        34
     ),
 
     new WizardType(
@@ -209,8 +207,8 @@ const WIZARD_CLASSES = [
         250,
         32,
         50,
-        22,
-        36
+        20,
+        32
     ),
 
     new WizardType(
@@ -219,8 +217,8 @@ const WIZARD_CLASSES = [
         190,
         38,
         54,
-        26,
-        40
+        24,
+        36
     ),
 
     new WizardType(
@@ -229,8 +227,8 @@ const WIZARD_CLASSES = [
         280,
         30,
         48,
-        20,
-        34
+        18,
+        30
     )
 ];
 
@@ -372,7 +370,7 @@ class GameScene extends Phaser.Scene {
         this.player = this.add.image(x, y, "wizard");
 
         // No setScale(1.5)
-        // The class controls the size instead.
+        // Size comes from the chosen wizard class.
         this.walkTimer = 0;
     }
 
@@ -386,19 +384,17 @@ class GameScene extends Phaser.Scene {
             wizardClass.displayHeight
         );
 
-        // setTintFill works better for black silhouette-style PNGs
         this.player.setTintFill(wizardClass.colour);
 
         if (this.player.body) {
 
+            // FIXED:
+            // The third parameter true centres the body automatically.
+            // This avoids offset problems.
             this.player.body.setSize(
                 wizardClass.bodyWidth,
-                wizardClass.bodyHeight
-            );
-
-            this.player.body.setOffset(
-                (this.player.displayWidth - wizardClass.bodyWidth) / 2,
-                (this.player.displayHeight - wizardClass.bodyHeight) / 2
+                wizardClass.bodyHeight,
+                true
             );
         }
 
@@ -559,6 +555,11 @@ class GameScene extends Phaser.Scene {
         item.roomKey = roomKey;
 
         this.physics.add.existing(item);
+
+        // FIXED:
+        // Make the physics body match the visible circle.
+        item.body.setCircle(18);
+
         this.itemGroup.add(item);
     }
 
@@ -603,6 +604,10 @@ class GameScene extends Phaser.Scene {
             item.canPickupAt = itemData.canPickupAt || 0;
 
             this.physics.add.existing(item);
+
+            // Keep dropped item collision smaller and centred.
+            item.body.setSize(24, 24, true);
+
             this.droppedGroup.add(item);
         });
     }
@@ -715,6 +720,9 @@ class GameScene extends Phaser.Scene {
         if (dy === -1) {
             this.player.y = ROOM_PIXELS - TILE_SIZE * 1.5;
         }
+
+        // Stop movement carrying through weirdly after changing rooms.
+        this.player.body.setVelocity(0);
     }
 
 
@@ -747,8 +755,18 @@ class GameScene extends Phaser.Scene {
             isMoving = true;
         }
 
+        // FIXED:
+        // Stops diagonal movement being faster.
+        if (isMoving) {
+            this.player.body.velocity.normalize().scale(speed);
+        }
+
         this.animatePlayer(isMoving, delta);
 
+
+        // -------------------------
+        // ROOM CHANGES
+        // -------------------------
 
         if (
             this.player.x < 0 &&
@@ -778,6 +796,10 @@ class GameScene extends Phaser.Scene {
             this.moveToRoom(0, 1);
         }
 
+
+        // -------------------------
+        // WIN / LOSE CHECK
+        // -------------------------
 
         if (
             this.roomX === WORLD_WIDTH - 1 &&
