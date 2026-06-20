@@ -88,20 +88,13 @@
 // ROOM SETTINGS
 // =====================================================
 
-// Each tile is 64 pixels wide and high
 const TILE_SIZE = 64;
-
-// Each room is 10 tiles by 10 tiles
 const ROOM_SIZE = 10;
-
-// This makes each room 640px by 640px
 const ROOM_PIXELS = ROOM_SIZE * TILE_SIZE;
 
-// The world is 10 rooms wide and 10 rooms high
 const WORLD_WIDTH = 10;
 const WORLD_HEIGHT = 10;
 
-// Win and lose positions in the final room
 const WIN_X = ROOM_PIXELS / 2 - 100;
 const WIN_Y = ROOM_PIXELS / 2;
 
@@ -110,17 +103,16 @@ const LOSE_Y = ROOM_PIXELS / 2;
 
 const END_DISTANCE = 35;
 
-// Collectible colours
 const ITEM_COLOURS = [
-    0xff0000, // red
-    0x00ff00, // green
-    0x0000ff, // blue
-    0xffff00, // yellow
-    0xff00ff, // pink
-    0x00ffff, // cyan
-    0xff9900, // orange
-    0xffffff, // white
-    0x9966ff  // purple
+    0xff0000,
+    0x00ff00,
+    0x0000ff,
+    0xffff00,
+    0xff00ff,
+    0x00ffff,
+    0xff9900,
+    0xffffff,
+    0x9966ff
 ];
 
 
@@ -133,7 +125,6 @@ class GameScene extends Phaser.Scene {
     constructor() {
         super();
 
-        // Start in room A1
         this.roomX = 0;
         this.roomY = 0;
     }
@@ -145,36 +136,25 @@ class GameScene extends Phaser.Scene {
 
     create() {
 
-        // Arrow key controls
         this.cursors = this.input.keyboard.createCursorKeys();
 
-        // Static wall group
         this.wallGroup = this.physics.add.staticGroup();
 
-        // Inventory data
         this.inventory = [];
-
-        // HTML inventory slots
         this.inventorySlots = document.querySelectorAll(".slot");
 
-        // Remember rooms where the original item has been collected
         this.collectedRooms = new Set();
-
-        // Remember items dropped in each room
         this.droppedItemsByRoom = {};
 
-        // Phaser groups for items
         this.itemGroup = this.physics.add.group();
         this.droppedGroup = this.physics.add.group();
 
-        // Allow inventory slots to be clicked
         this.inventorySlots.forEach((slot, index) => {
             slot.addEventListener("click", () => {
                 this.dropInventoryItem(index);
             });
         });
 
-        // Room label, for example A1, B1, C1
         this.roomText = this.add.text(
             ROOM_PIXELS / 2,
             ROOM_PIXELS / 2,
@@ -187,53 +167,36 @@ class GameScene extends Phaser.Scene {
 
         this.roomText.setOrigin(0.5);
 
-        // Win and lose pads
         this.winPad = this.add.circle(WIN_X, WIN_Y, 25, 0x00ff00);
         this.losePad = this.add.circle(LOSE_X, LOSE_Y, 25, 0xff0000);
 
         this.winPad.setVisible(false);
         this.losePad.setVisible(false);
 
-        // Draw the starting room
         this.drawRoom();
 
-        // Create wizard player
         this.createPlayerCharacter(
             ROOM_PIXELS / 2,
             ROOM_PIXELS / 2
         );
 
-        // Add physics to the wizard
         this.physics.add.existing(this.player);
 
-        // -------------------------------------------------
-        // WIZARD COLLISION BOX
-        // -------------------------------------------------
-        // The visible wizard is 34px wide and 52px high.
-        // The collision box is slightly smaller.
-        // This helps the wizard fit through a 64px door gap.
+        // Smaller collision box so the wizard fits through doors
         this.player.body.setSize(24, 38);
 
-        // Centre the collision box on the wizard.
-        // IMPORTANT:
-        // Because setDisplaySize changes display size,
-        // use displayWidth and displayHeight here.
         this.player.body.setOffset(
             (this.player.displayWidth - 24) / 2,
             (this.player.displayHeight - 38) / 2
         );
 
-        // Do not trap player inside screen bounds.
-        // We need them to move past the edge to change rooms.
         this.player.body.setCollideWorldBounds(false);
 
-        // Player collides with walls
         this.physics.add.collider(
             this.player,
             this.wallGroup
         );
 
-        // Player collects normal items
         this.physics.add.overlap(
             this.player,
             this.itemGroup,
@@ -242,7 +205,6 @@ class GameScene extends Phaser.Scene {
             this
         );
 
-        // Player collects dropped items
         this.physics.add.overlap(
             this.player,
             this.droppedGroup,
@@ -250,27 +212,62 @@ class GameScene extends Phaser.Scene {
             null,
             this
         );
+
+        // Add four coloured wizards in the top-left corner
+        this.createWizardChoices();
     }
 
 
     // =====================================================
-    // WIZARD PLAYER
+    // PLAYER WIZARD
     // =====================================================
 
     createPlayerCharacter(x, y) {
 
-        // Create wizard sprite from image
         this.player = this.add.image(x, y, "wizard");
 
-        // DO NOT USE setScale(1.5)
-        // That makes the wizard far too big.
-
-        // Set the wizard to an exact screen size.
-        // The door gap is 64px, so width 34px fits through it.
+        // Exact size.
+        // This replaces setScale(1.5).
+        // The door gap is 64px, so 34px wide fits through.
         this.player.setDisplaySize(34, 52);
 
-        // Walking animation timer
         this.walkTimer = 0;
+    }
+
+
+    // =====================================================
+    // FOUR COLOURED WIZARDS IN TOP LEFT
+    // =====================================================
+
+    createWizardChoices() {
+
+        const startX = 35;
+        const startY = 35;
+        const gap = 38;
+
+        const wizardColours = [
+            0xff0000, // red
+            0x00ff00, // green
+            0x0000ff, // blue
+            0xffff00  // yellow
+        ];
+
+        this.wizardChoices = [];
+
+        for (let i = 0; i < 4; i++) {
+
+            const miniWizard = this.add.image(
+                startX + (i * gap),
+                startY,
+                "wizard"
+            );
+
+            miniWizard.setDisplaySize(24, 36);
+            miniWizard.setTint(wizardColours[i]);
+            miniWizard.setDepth(10);
+
+            this.wizardChoices.push(miniWizard);
+        }
     }
 
 
@@ -278,8 +275,6 @@ class GameScene extends Phaser.Scene {
 
         if (isMoving) {
             this.walkTimer += delta;
-
-            // Small walking wobble
             this.player.angle = Math.sin(this.walkTimer / 100) * 2;
         }
         else {
@@ -287,10 +282,6 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-
-    // =====================================================
-    // ROOM LABEL
-    // =====================================================
 
     updateRoomLabel() {
 
@@ -300,10 +291,6 @@ class GameScene extends Phaser.Scene {
         this.roomText.setText(`${letter}${number}`);
     }
 
-
-    // =====================================================
-    // WALL CREATION
-    // =====================================================
 
     createWall(x, y) {
 
@@ -320,18 +307,12 @@ class GameScene extends Phaser.Scene {
     }
 
 
-    // =====================================================
-    // INVENTORY
-    // =====================================================
-
     updateInventoryDisplay() {
 
-        // Empty all slots first
         this.inventorySlots.forEach(slot => {
             slot.style.backgroundColor = "#444";
         });
 
-        // Fill slots with inventory colours
         this.inventory.forEach((colour, index) => {
             this.inventorySlots[index].style.backgroundColor =
                 "#" + colour.toString(16).padStart(6, "0");
@@ -341,24 +322,20 @@ class GameScene extends Phaser.Scene {
 
     dropInventoryItem(slotIndex) {
 
-        // Only drop if there is an item in that slot
         if (slotIndex >= this.inventory.length) {
             return;
         }
 
         const colour = this.inventory[slotIndex];
-
         const roomKey = `${this.roomX},${this.roomY}`;
 
         if (!this.droppedItemsByRoom[roomKey]) {
             this.droppedItemsByRoom[roomKey] = [];
         }
 
-        // Work out which tile the player is standing on
         const tileX = Math.floor(this.player.x / TILE_SIZE);
         const tileY = Math.floor(this.player.y / TILE_SIZE);
 
-        // Drop in the centre of that tile
         const dropX = tileX * TILE_SIZE + TILE_SIZE / 2;
         const dropY = tileY * TILE_SIZE + TILE_SIZE / 2;
 
@@ -366,23 +343,15 @@ class GameScene extends Phaser.Scene {
             x: dropX,
             y: dropY,
             colour: colour,
-
-            // Stops player instantly picking it back up
             canPickupAt: this.time.now + 800
         });
 
-        // Remove item from inventory
         this.inventory.splice(slotIndex, 1);
 
         this.updateInventoryDisplay();
-
         this.createDroppedItems();
     }
 
-
-    // =====================================================
-    // COLLECTIBLE ITEMS
-    // =====================================================
 
     createRoomItems() {
 
@@ -390,17 +359,16 @@ class GameScene extends Phaser.Scene {
 
         const roomKey = `${this.roomX},${this.roomY}`;
 
-        // Original items are placed in specific rooms
         const itemRooms = {
-            "1,0": 0, // B1 red
-            "3,2": 1, // D3 green
-            "5,1": 2, // F2 blue
-            "2,4": 3, // C5 yellow
-            "7,3": 4, // H4 pink
-            "4,6": 5, // E7 cyan
-            "8,5": 6, // I6 orange
-            "6,8": 7, // G9 white
-            "9,9": 8  // J10 purple
+            "1,0": 0,
+            "3,2": 1,
+            "5,1": 2,
+            "2,4": 3,
+            "7,3": 4,
+            "4,6": 5,
+            "8,5": 6,
+            "6,8": 7,
+            "9,9": 8
         };
 
         if (!(roomKey in itemRooms)) {
@@ -445,10 +413,6 @@ class GameScene extends Phaser.Scene {
     }
 
 
-    // =====================================================
-    // DROPPED ITEMS
-    // =====================================================
-
     createDroppedItems() {
 
         this.droppedGroup.clear(true, true);
@@ -480,7 +444,6 @@ class GameScene extends Phaser.Scene {
 
     collectDroppedItem(player, item) {
 
-        // Do not pick it up instantly after dropping
         if (this.time.now < item.canPickupAt) {
             return;
         }
@@ -505,10 +468,6 @@ class GameScene extends Phaser.Scene {
     }
 
 
-    // =====================================================
-    // ROOM DRAWING
-    // =====================================================
-
     drawRoom() {
 
         this.wallGroup.clear(true, true);
@@ -520,7 +479,6 @@ class GameScene extends Phaser.Scene {
         const hasWest = this.roomX > 0;
         const hasEast = this.roomX < WORLD_WIDTH - 1;
 
-        // Top and bottom walls
         for (let x = 0; x < ROOM_SIZE; x++) {
 
             if (!(hasNorth && x === gap)) {
@@ -538,7 +496,6 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Left and right walls
         for (let y = 1; y < ROOM_SIZE - 1; y++) {
 
             if (!(hasWest && y === gap)) {
@@ -570,10 +527,6 @@ class GameScene extends Phaser.Scene {
     }
 
 
-    // =====================================================
-    // ROOM TRANSITIONS
-    // =====================================================
-
     moveToRoom(dx, dy) {
 
         this.roomX += dx;
@@ -598,10 +551,6 @@ class GameScene extends Phaser.Scene {
         }
     }
 
-
-    // =====================================================
-    // GAME LOOP
-    // =====================================================
 
     update(time, delta) {
 
@@ -635,9 +584,7 @@ class GameScene extends Phaser.Scene {
         this.animatePlayer(isMoving, delta);
 
 
-        // -------------------------
-        // ROOM CHANGES
-        // -------------------------
+        // Room changes
 
         if (
             this.player.x < 0 &&
@@ -668,9 +615,7 @@ class GameScene extends Phaser.Scene {
         }
 
 
-        // -------------------------
-        // END SCENE
-        // -------------------------
+        // Win / lose check
 
         if (
             this.roomX === WORLD_WIDTH - 1 &&
